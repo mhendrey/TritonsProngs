@@ -98,7 +98,6 @@ class TritonPythonModel:
         valid_requests = []
         for batch_id, request in enumerate(requests):
             request_params = json.loads(request.parameters())
-            logger.log_info(request.parameters())
             base64_encoded = request_params.get(
                 "base64_encoded", self.base64_encoded_default
             )
