@@ -1,0 +1,15 @@
+name: embed_image
+channels:
+    - pytorch
+    - conda-forge
+    - defaults
+dependencies:
+    - python ==3.10.12
+    - numpy ==1.26.4 # Finding that many models break if using numpy=2.0
+    - pip
+    - protobuf
+    - pytorch ==2.3.1
+    - cpuonly ==2.0
+    - transformers ==4.42.4
+    - sentencepiece ==0.2.0
+    - pillow ==10.4.0

@@ -1,0 +1,16 @@
+name: siglip
+channels:
+    - pytorch
+    - nvidia
+    - conda-forge
+    - defaults
+dependencies:
+    - python ==3.10.12
+    - numpy ==1.26.4 # Finding that many models break if using numpy=2.0
+    - pip
+    - protobuf
+    - pytorch ==2.3.1
+    - pytorch-cuda ==12.1
+    - transformers ==4.42.4
+    - accelerate ==0.32.1
+    - sentencepiece ==0.2.0

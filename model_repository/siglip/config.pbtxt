@@ -1,0 +1,37 @@
+name: "siglip"
+backend: "python"
+max_batch_size: 25
+default_model_filename: "siglip.py"
+
+input [
+    {
+        name: "PIXEL_VALUES"
+        data_type: TYPE_FP32
+        dims: [3, 384, 384]
+    }
+]
+output [
+    {
+        name: "EMBEDDING"
+        data_type: TYPE_FP32
+        dims: [1152]
+    }
+]
+
+parameters: [
+    {
+        key: "EXECUTION_ENV_PATH",
+        value: {string_value: "$$TRITON_MODEL_DIRECTORY/siglip.tar.gz"},
+    },
+    {
+        key: "model_path",
+        value: {
+            string_value: "/hub/models--google--siglip-so400m-patch14-384/snapshots/7067f6db2baa594bab7c6d965fe488c7ac62f1c8/"
+            },
+    }
+]
+instance_group [{kind: KIND_AUTO}]
+version_policy: {latest: {num_versions: 1}}
+dynamic_batching: {
+    max_queue_delay_microseconds: 15000
+}

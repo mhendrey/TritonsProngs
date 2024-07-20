@@ -1,0 +1,39 @@
+name: "embed_image"
+backend: "python"
+max_batch_size: 25
+default_model_filename: "embed_image.py"
+
+input [
+    {
+        name: "INPUT_IMAGE"
+        data_type: TYPE_STRING
+        dims: [1]
+    }
+]
+output [
+    {
+        name: "EMBEDDING"
+        data_type: TYPE_FP32
+        dims: [1152]
+    }
+]
+
+parameters: [
+    {
+        key: "EXECUTION_ENV_PATH",
+        value: {string_value: "$$TRITON_MODEL_DIRECTORY/embed_image.tar.gz"},
+    },
+    {
+        key: "model_path",
+        value: {
+            string_value: "/hub/models--google--siglip-so400m-patch14-384/snapshots/7067f6db2baa594bab7c6d965fe488c7ac62f1c8/"
+        },
+    },
+    {
+        key: "base64_encoded_default",
+        value: {string_value: "true"},
+    }
+]
+instance_group [{kind: KIND_CPU}]
+version_policy: {latest: {num_versions: 1}}
+dynamic_batching: {}
