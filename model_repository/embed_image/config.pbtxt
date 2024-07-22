@@ -1,6 +1,6 @@
 name: "embed_image"
 backend: "python"
-max_batch_size: 25
+max_batch_size: 60
 default_model_filename: "embed_image.py"
 
 input [
@@ -34,6 +34,11 @@ parameters: [
         value: {string_value: "true"},
     }
 ]
-instance_group [{kind: KIND_CPU}]
+instance_group [
+    {
+        kind: KIND_CPU,
+        count: 1
+    }
+]
 version_policy: {latest: {num_versions: 1}}
 dynamic_batching: {}

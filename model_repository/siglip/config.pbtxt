@@ -1,6 +1,6 @@
 name: "siglip"
 backend: "python"
-max_batch_size: 25
+max_batch_size: 32
 default_model_filename: "siglip.py"
 
 input [
@@ -30,8 +30,11 @@ parameters: [
             },
     }
 ]
-instance_group [{kind: KIND_AUTO}]
+instance_group [
+    {
+        kind: KIND_AUTO,
+        count: 1
+    }
+]
 version_policy: {latest: {num_versions: 1}}
-dynamic_batching: {
-    max_queue_delay_microseconds: 15000
-}
+dynamic_batching: {}

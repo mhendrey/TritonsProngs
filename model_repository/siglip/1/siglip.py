@@ -42,6 +42,13 @@ class TritonPythonModel:
             local_files_only=True,
             use_safetensors=True,
         )
+        # If on a GPU, use torch.compile to improve throughput
+        if torch.cuda.is_available():
+            self.model = torch.compile(self.model, dynamic=True)
+            # Run some dummy data through to force compiling
+            dummy = torch.randn(8, 3, 384, 384).type(self.torch_dtype).to(self.device)
+            with torch.no_grad():
+                self.model(pixel_values=dummy)["pooler_output"]
 
     def execute(self, requests: list) -> list:
         """_summary_
