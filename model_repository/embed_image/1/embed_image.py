@@ -29,9 +29,19 @@ class TritonPythonModel:
             embedding_config["data_type"]
         )
         model_path = model_config["parameters"]["model_path"]["string_value"]
-        self.base64_encoded_default = bool(
-            model_config["parameters"]["base64_encoded_default"]["string_value"]
-        )
+        # bool_value doesn't appear supported forcing using string_value
+        base64_encoded_default_str = model_config["parameters"][
+            "base64_encoded_default"
+        ]["string_value"]
+        if base64_encoded_default_str.lower() == "true":
+            self.base64_encoded_default = True
+        elif base64_encoded_default_str.lower() == "false":
+            self.base64_encoded_default = False
+        else:
+            raise pb_utils.TritonError(
+                "model_config['parameters']['base64_encoded_default']="
+                + f"{base64_encoded_default_str} must be 'true' | 'false'. "
+            )
 
         self.processor = AutoProcessor.from_pretrained(
             model_path,

@@ -31,7 +31,7 @@ parameters: [
     },
     {
         key: "base64_encoded_default",
-        value: {string_value: "true"},
+        value: {string_value: "false"},
     }
 ]
 instance_group [
