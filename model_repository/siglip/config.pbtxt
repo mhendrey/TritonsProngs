@@ -38,3 +38,31 @@ instance_group [
 ]
 version_policy: {latest: {num_versions: 1}}
 dynamic_batching: {}
+model_warmup: [
+    {
+        name: "batch_size_1"
+        count: 5
+        batch_size: 1
+        inputs: {
+            key: "PIXEL_VALUES"
+            value: {
+                data_type: TYPE_FP32
+                dims: [3, 384, 384]
+                random_data: true
+            }
+        }
+    },
+    {
+        name: "batch_size_2"
+        count: 5
+        batch_size: 2
+        inputs: {
+            key: "PIXEL_VALUES"
+            value: {
+                data_type: TYPE_FP32
+                dims: [3, 384, 384]
+                random_data: true
+            }
+        }
+    }
+]
