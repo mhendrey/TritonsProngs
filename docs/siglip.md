@@ -38,13 +38,13 @@ inference_request = {
         }
     ]
 }
-siglop_response = requests.post(
+siglip_response = requests.post(
     url=f"{base_url}/siglip/infer",
     json=inference_request,
 ).json()
 
 embedding = np.array(
-    siglop_response["outputs"][0]["data"],
+    siglip_response["outputs"][0]["data"],
     dtype=np.float32
 )
 ```
