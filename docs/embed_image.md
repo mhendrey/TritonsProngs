@@ -3,6 +3,11 @@ This is a BLS deployment that lets a client send an image and get back a vector
 embedding. Currently this only uses the [siglip](siglip.md) model, but future
 embedding models could be added.
 
+Because dynamic batching has been enabled for these Triton Inference Server
+deployments, clients simply send each request separately. This simplifies the code for
+the client, see examples below, yet they reap the benefits of batched processing. In
+addition, this allows for controlling the GPU RAM consumed by the server.
+
 ## Example Request
 ### Raw Image
 Here's an example of sending a raw image. Just a few things to point out
@@ -46,6 +51,7 @@ Here's an example of sending a base64 encoded image. Just a few things to point 
 2. Must use "parameters" and set "base64_encoded" to `True`. The default is `False`
 3. "shape": [1, 1] because we have dynamic batching enabled and the first axis is batch
    size
+
 ```
 import base64
 import requests
@@ -73,6 +79,49 @@ image_embed_response = requests.post(
     json=inference_request,
 ).json()
 image_embedding = image_embed_response["outputs"][0]["data"]
+```
+
+### Sending Many Images
+If you want to send a lot of images to be embedded, it's important that you send each
+image request in a multithreaded way to achieve optimal throughput.
+
+```
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import numpy as np
+from pathlib import Path
+import requests
+
+input_dir = Path("/path/to/image/director/")
+futures = {}
+embeddings = {}
+with ThreadPoolExecutor(max_workers=60) as executor:
+    for path in input_dir.iterdir():
+        if path.is_file():
+            future = executor.submit(requests.post,
+                url=f"{base_url}/embed_image/infer",
+                data=path.read_bytes(),
+                headers={
+                    "Content-Type": "application/octet-stream",
+                    "Inference-Header-Content-Length": "0",
+                }
+            )
+            futures[future] = str(path.absolute())
+    
+    for future in as_completed(futures):
+        try:
+            response = future.result()
+        except Exception as exc:
+            print(f"{futures[future]} threw {exc}")
+        else:
+            try:
+                header_length = int(response.headers["Inference-Header-Content-Length"])
+                embedding = np.frombuffer(
+                    response.content[header_length:], dtype=np.float32
+                )
+                embeddings[futures[future]] = embedding
+            except Exception as exc:
+                raise ValueError(f"Error getting data from response: {exc}")
+print(embeddings)
 ```
 ## Performance Analysis
 There is some data in `data/embed_image/base64.json` which can be used with the
@@ -121,5 +170,6 @@ Gives the following result on an RTX4090 GPU
       * Execution count: 1019
       * Successful request count: 7874
       * Avg request latency: 168289 usec (overhead 12 usec + queue 60917 usec + compute input * 1967 usec + compute infer 105296 usec + compute output 96 usec)
-* Inferences/Second vs. Client Average Batch Latency
-* Concurrency: 60, throughput: 109.121 infer/sec, latency 547307 usec
+
+Inferences/Second vs. Client Average Batch Latency
+Concurrency: 60, throughput: 109.121 infer/sec, latency 547307 usec
