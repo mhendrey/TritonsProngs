@@ -155,6 +155,6 @@ Inference Server deployed endpoint. These embeddings were used to train an
 a new embedding vector, the 10 closest neighbors will be used to create a prediction
 based upon the class of those 10 neighbors (weighted by distance to query vector).
 
-We calculate the accuracy of the top-1 and find that we get an accuracy of 74.7%
+We calculate the accuracy of the top-1 and find that we get an accuracy of 74.4%
 
 The code is available in `model_repository/siglip/validate.py`.

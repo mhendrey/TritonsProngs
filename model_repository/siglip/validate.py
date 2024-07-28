@@ -3,18 +3,77 @@ import numpy as np
 import os
 from pathlib import Path
 import requests
+import torch
+from transformers import SiglipTextModel, SiglipProcessor
 from sklearn import neighbors, metrics
 
 
-def get_embeddings(input_dir: Path, n_categories: int = 0, max_workers: int = 60):
-    embeddings = {}
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for i, class_dir in enumerate(input_dir.iterdir()):
-            # Stop if we only wanted to test a subset of the categories
-            if i == n_categories and n_categories > 0:
-                break
+def get_labels(synset_mapping: Path):
+    """
+    Get the synset category labels and their corresponding text description from
+    the LOC_synset_mapping.txt file
+
+    Parameters
+    ----------
+    synset_mapping : Path
+        LOC_synset_mapping.txt file location
+
+    Returns
+    -------
+    labels: list
+        List of the synset category labels (e.g, n01742172)
+    labels_text: dict
+        Synset category label (e.g, n01742172) as the keys and the text description
+        (eg., 'boa constrictor, Constrictor constrictor') as the values.
+    """
+    labels = []
+    labels_text = {}
+    with synset_mapping.open("r") as f:
+        for line in f:
+            line_parts = line.split()
+            label = line_parts[0]
+            text = " ".join(line_parts[1:])
+            labels.append(label)
+            labels_text[label] = text
+    labels = np.array(labels)
+    return labels, labels_text
+
+
+def get_data(input_dir: Path, n_categories: int = 0, n_samples_per_category: int = 0):
+    """
+    Iterate through input directory of images and submit them to Triton Inference
+    Server to get their image embeddings. The category label is the first part of the
+    file's name.
+
+    Parameters
+    ----------
+    input_dir : Path
+        Starting directory. In this directory should be subdirectories corresponding to
+        the 1,000 different categories of ImageNet.
+    n_categories : int, optional
+        Number of categories to process. Default is 0, meaning process all of them.
+    n_samples_per_category : int, optional
+        Number of files in each category to embed. Default is 0, meaning all files.
+
+    Returns
+    -------
+    X: np.ndarray, shape=(-1, embedding_dimension)
+        Image embeddings
+    Y: np.ndarray, shape=(-1,)
+        Synset category
+    """
+    category_dirs = list(input_dir.iterdir())
+    if n_categories > 0:
+        np.random.shuffle(category_dirs)
+        category_dirs = category_dirs[:n_categories]
+    X = []
+    Y = []
+    with ThreadPoolExecutor(max_workers=60) as executor:
+        for i, category_dir in enumerate(category_dirs):
             futures = {}
-            for image_file in class_dir.iterdir():
+            for j, image_file in enumerate(category_dir.iterdir()):
+                if j == n_samples_per_category and n_samples_per_category > 0:
+                    break
                 image_bytes = image_file.read_bytes()
                 if image_file.is_file():
                     future = executor.submit(
@@ -31,6 +90,7 @@ def get_embeddings(input_dir: Path, n_categories: int = 0, max_workers: int = 60
             for future in as_completed(futures):
                 try:
                     response = future.result()
+                    label = futures[future].split("_")[0]
                 except Exception as exc:
                     print(f"{futures[future]} threw {exc}")
                 else:
@@ -41,52 +101,111 @@ def get_embeddings(input_dir: Path, n_categories: int = 0, max_workers: int = 60
                         embedding = np.frombuffer(
                             response.content[header_length:], dtype=np.float32
                         )
-                        embeddings[futures[future]] = embedding
+                        X.append(embedding)
+                        Y.append(label)
                     except Exception as exc:
                         print(ValueError(f"Error getting data from response: {exc}"))
-            if (i + 1) % 100 == 0:
-                print(f"{(i+1):03} Finished {class_dir.name}")
+            if (i + 1) % 250 == 0:
+                print(f"{(i+1):03} Finished {category_dir.name}")
 
-    return embeddings
+        X = np.vstack(X)
+        Y = np.array(Y)
+
+    return X, Y
+
+
+def zero_shot(labels_text: dict):
+    """
+    Get training vectors using a zero-shot approach. This will embed the text
+    description of each of the synset categories using the SiglipTextModel using
+    the prompt "A photo of a {category_description}".
+
+    Parameters
+    ----------
+    labels_text : dict
+        Dictionary containing the synset category (e.g., n01742172) as the keys and
+        their corresponding description(eg., 'boa constrictor, Constrictor constrictor')
+        as the values
+
+    Returns
+    -------
+    X: np.ndarray, shape=(n_categories, embedding_dimension)
+        Text embeddings
+    Y: np.ndarray, shape=(n_categories,)
+        Synset category
+    """
+    device = torch.device("cuda")
+    model = SiglipTextModel.from_pretrained(
+        "google/siglip-so400m-patch14-384", device_map="auto", torch_dtype=torch.float16
+    )
+    processor = SiglipProcessor.from_pretrained("google/siglip-so400m-patch14-384")
+
+    X = []
+    Y = []
+    for label, text in labels_text.items():
+        prompt = f"A photo of a {text}"
+        inputs = processor(text=prompt).to(device)
+        with torch.no_grad():
+            embedding = (
+                model(**inputs)["pooler_output"]
+                .cpu()
+                .type(torch.float32)
+                .numpy()
+                .reshape(-1)
+            )
+        X.append(embedding)
+        Y.append(label)
+    X = np.vstack(X)
+    Y = np.array(Y)
+
+    return X, Y
 
 
 def main():
     data_dir = Path(os.getenv("HOME")) / "data" / "imagenet"
+    labels, labels_text = get_labels(data_dir / "LOC_synset_mapping.txt")
     train_dir = data_dir / "train"
-    train_embeddings = get_embeddings(train_dir)
-    class_names = []
-    class2id = {}
-    X_train = []
-    Y_train = []
-    Z_train = []
-    for filename, embedding in train_embeddings.items():
-        class_name = filename.split("_")[0]
-        if class_name not in class2id:
-            class_names.append(class_name)
-            class2id[class_name] = len(class_names) - 1
-        X_train.append(embedding)
-        Y_train.append(class2id[class_name])
-        Z_train.append(class_name)
-
-    print("Starting to fit KNN classifier")
-    clf = neighbors.KNeighborsClassifier(n_neighbors=10, weights="distance")
-    clf.fit(X_train, Y_train)
-    print("Finished fitting classifier")
-
     valid_dir = data_dir / "valid"
-    valid_embeddings = get_embeddings(valid_dir)
-    X = []
-    Y_true = []
-    Z_true = []
-    for filename, embedding in valid_embeddings.items():
-        class_name = filename.split("_")[0]
-        X.append(embedding)
-        Y_true.append(class2id[class_name])
-        Z_true.append(class_name)
-    Y_pred = clf.predict(X)
 
-    average_precision = metrics.precision_score(Y_true, Y_pred, average="micro")
-    print(f"{average_precision=:.4f}")
+    # Training Data
+    X_train, Y_train = get_data(train_dir)
+
+    # Fit Classifier
+    clf = neighbors.KNeighborsClassifier(
+        n_neighbors=10, weights="distance", metric="cosine"
+    )
+    clf.fit(X_train, Y_train)
+
+    # Validation Data
+    X, Y = get_data(valid_dir)
+
+    # Make predictions
+    Y_pred = clf.predict_proba(X)
+
+    # Results
+    top1_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=1)
+    print(f"Top-1 Precision = {top1_precision:.4f}")
+
+    top5_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=5)
+    print(f"Top-5 Precision = {top5_precision:.4f}")
+
+    ##### Zero shot ######
+    # Create training data using the text embedding of the label descriptions
+    X_train_zero, Y_train_zero = zero_shot(labels_text)
+    clf_zero = neighbors.KNeighborsClassifier(
+        n_neighbors=10, weights="distance", metric="cosine"
+    )
+    clf_zero.fit(X_train_zero, Y_train_zero)
+
+    # Make predictions
+    Y_pred = clf_zero.predict_proba(X)
+
+    # Results
+    top1_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=1)
+    print(f"Zero-shot Top-1 Precision = {top1_precision:.4f}")
+
+    top5_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=5)
+    print(f"Zero-shot Top-5 Precision = {top5_precision:.4f}")
 
 
 if __name__ == "__main__":
