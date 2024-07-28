@@ -54,6 +54,11 @@ If you want to send a lot of image pixels to be embedded, it's important that yo
 each image request in a multithreaded way to achieve optimal throughput. The example
 below creates 120 random pixel values to be embedded.
 
+NOTE: You will encounter a OSError Too many open files if you send a lot of requests.
+Typically the default ulimit is 1024 on most system. Either increaces this using 
+`ulimit -n {n_files}`, or don't create too many futures before you process them when
+completed.
+
 ```
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
@@ -138,23 +143,70 @@ Gives the following result on an RTX4090 GPU
     * Successful request count: 8010
     * Avg request latency: 523216 usec (overhead 48 usec + queue 254808 usec + compute input 8710 usec + compute infer 259454 usec + compute output 194 usec)
 
-Inferences/Second vs. Client Average Batch Latency
-Concurrency: 60, throughput: 111.235 infer/sec, latency 535768 usec
+* Inferences/Second vs. Client Average Batch Latency
+* Concurrency: 60, throughput: 111.235 infer/sec, latency 535768 usec
 
 ## Validation
 To validate that the model is performing as expected, we use some data from
 [ImageNet](https://www.kaggle.com/competitions/imagenet-object-localization-challenge).
+The training data was nicely organized into subdirectories with each subdirectory
+named after the Synset category and with each file name in a give subdirectory also
+containing the {synset}_{file_id}.JPEG.
 
 Working with images from the training data set, I put 10 images for each of the 1,000
-categories into `train/{category_synset}` directory on my local machine. An additional
-20 images for each of the 1,000 categories were placed into `valid/{category_synset}".
+categories into `train/{synset}` directory on my local machine. An additional
+20 images for each of the 1,000 categories were placed into `valid/{synset}`.
 
-The training images were embedded using the [embed_image][embed_image.md] Triton
-Inference Server deployed endpoint. These embeddings were used to train an
-`sklearn.neighbors.KNeighborsClassifier`. Thus, we have a 10-shot learning. To classify
-a new embedding vector, the 10 closest neighbors will be used to create a prediction
-based upon the class of those 10 neighbors (weighted by distance to query vector).
+In addition to the subset of images, I also downloaded the LOC_synset_mapping.txt. This
+contains the synset category label and a description of the category. This data will be
+used for performing the zero-shot accuracy validation. Here is the first
+few lines:
 
-We calculate the accuracy of the top-1 and find that we get an accuracy of 74.4%
+```
+n01440764 tench, Tinca tinca
+n01443537 goldfish, Carassius auratus
+n01484850 great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias
+n01491361 tiger shark, Galeocerdo cuvieri
+n01494475 hammerhead, hammerhead shark
+```
 
-The code is available in `model_repository/siglip/validate.py`.
+### 10-Shot Training of KNN Classifier
+As a first check, we will use the training images (10 images per category x 1000
+categories) to create a [KNN Classifier](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html#sklearn.neighbors.KNeighborsClassifier).
+The training images are embedded using the [embed_image][embed_image.md] Triton
+Inference Server deployed endpoint. These training image embeddings and their
+corresponding category labels were used to fit the classifier.
+
+The validation images are used to measure the performance. Each validation image is
+also sent to be embedded. For each image, the classifier finds the 10-nearest training
+images. A prediction for the classification of the validation image is based upon the
+category of the 10 nearest neighbors and their distance to the validation image. Both
+the top-1 accuracy (i.e., was the true label of the validation image the top predicted
+class from the nearest neighbors) and also the top-5 accuracy (was the true label in
+among the top-5 predicted classes). Results are in the table below.
+
+### Zero-Shot KNN Classifier
+The [SigLIP paper](https://arxiv.org/abs/2303.15343) uses zero-shot to measure the
+quality of their embedding model. For zero-shot, you use a text description of the
+category and embed that using the
+[SiglipTextModel](https://huggingface.co/docs/transformers/en/model_doc/siglip#transformers.SiglipTextModel).
+This text embedding of the category is what is used to fit the KNN Classifier. After
+that, we do the same as before. Taking each validation image embedding, get the 
+10 nearest neighbors (where a neighbor now is a text embedding of a category), and
+use the neighbors' corresponding category label to predict the classification of the
+validation image. We calculate both the top-1 and top-5 accuracy.
+
+The SigLIP paper claims an ImageNet accuracy of 83.2% on the validation data of
+ImageNet. They paper notes some tweak to the prompts and a few other details to
+improve peformance. The numbers quoted below had just a single round of iterating
+on the prompt to use. 
+
+### Results
+
+| | Top-1 Accuracy | Top-5 Accuracy |
+|:----:| :-----: | :-----: |
+| 10-shot | 0.7448 | 0.9153 |
+| Zero-shot | 0.7266 | 0.9069 |
+
+### Code
+The code is available in [model_repository/siglip/validate.py](../model_repository/siglip/validate.py)

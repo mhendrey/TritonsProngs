@@ -143,7 +143,11 @@ def zero_shot(labels_text: dict):
     X = []
     Y = []
     for label, text in labels_text.items():
-        prompt = f"A photo of a {text}"
+        prompt = (
+            f"This is a photo from ImageNet's {label} category. "
+            + f"This category contains photos of {text}"
+        )
+        # prompt = f"A photo of a {text}" # Signficantly less accuracy
         inputs = processor(text=prompt).to(device)
         with torch.no_grad():
             embedding = (
@@ -183,11 +187,11 @@ def main():
     Y_pred = clf.predict_proba(X)
 
     # Results
-    top1_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=1)
-    print(f"Top-1 Precision = {top1_precision:.4f}")
+    top1_accuracy = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=1)
+    print(f"Top-1 Accuracy = {top1_accuracy:.4f}")
 
-    top5_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=5)
-    print(f"Top-5 Precision = {top5_precision:.4f}")
+    top5_accuracy = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=5)
+    print(f"Top-5 Accuracy = {top5_accuracy:.4f}")
 
     ##### Zero shot ######
     # Create training data using the text embedding of the label descriptions
@@ -201,11 +205,11 @@ def main():
     Y_pred = clf_zero.predict_proba(X)
 
     # Results
-    top1_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=1)
-    print(f"Zero-shot Top-1 Precision = {top1_precision:.4f}")
+    top1_accuracy = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=1)
+    print(f"Zero-shot Top-1 Accuracy = {top1_accuracy:.4f}")
 
-    top5_precision = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=5)
-    print(f"Zero-shot Top-5 Precision = {top5_precision:.4f}")
+    top5_accuracy = metrics.top_k_accuracy_score(Y, Y_pred, labels=labels, k=5)
+    print(f"Zero-shot Top-5 Accuracy = {top5_accuracy:.4f}")
 
 
 if __name__ == "__main__":

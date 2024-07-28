@@ -30,6 +30,10 @@ parameters: [
         },
     },
     {
+        key: "default_embed_model",
+        value: {string_value: "siglip"},
+    },
+    {
         key: "base64_encoded_default",
         value: {string_value: "false"},
     }

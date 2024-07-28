@@ -171,5 +171,5 @@ Gives the following result on an RTX4090 GPU
       * Successful request count: 7874
       * Avg request latency: 168289 usec (overhead 12 usec + queue 60917 usec + compute input * 1967 usec + compute infer 105296 usec + compute output 96 usec)
 
-Inferences/Second vs. Client Average Batch Latency
-Concurrency: 60, throughput: 109.121 infer/sec, latency 547307 usec
+* Inferences/Second vs. Client Average Batch Latency
+* Concurrency: 60, throughput: 109.121 infer/sec, latency 547307 usec

@@ -43,12 +43,16 @@ class TritonPythonModel:
                 + f"{base64_encoded_default_str} must be 'true' | 'false'. "
             )
 
-        self.processor = AutoProcessor.from_pretrained(
+        self.default_embed_model = model_config["parameters"]["default_embed_model"][
+            "string_value"
+        ]
+        self.processors = {}
+        self.processors["siglip"] = AutoProcessor.from_pretrained(
             model_path,
             local_files=True,
         )
 
-    def process_request(self, request, base64_encoded: bool):
+    def process_request(self, request, embed_model: str, base64_encoded: bool):
         try:
             input_image_tt = pb_utils.get_input_tensor_by_name(request, "INPUT_IMAGE")
         except Exception as exc:
@@ -72,7 +76,7 @@ class TritonPythonModel:
             raise ValueError(f"Failed on PIL.Image.open() request data: {exc}")
 
         try:
-            pixel_values_np = self.processor(
+            pixel_values_np = self.processors[embed_model](
                 images=images, padding="max_length", return_tensors="pt"
             )["pixel_values"].numpy()
         except Exception as exc:
@@ -107,12 +111,17 @@ class TritonPythonModel:
         inference_response_awaits = []
         valid_requests = []
         for batch_id, request in enumerate(requests):
+            # Handle any request parameters
             request_params = json.loads(request.parameters())
             base64_encoded = request_params.get(
                 "base64_encoded", self.base64_encoded_default
             )
+            embed_model = request_params.get("embed_model", self.default_embed_model)
+
             try:
-                pixel_values_np = self.process_request(request, base64_encoded)
+                pixel_values_np = self.process_request(
+                    request, embed_model, base64_encoded
+                )
                 pixel_values_tt = pb_utils.Tensor("PIXEL_VALUES", pixel_values_np)
             except Exception as exc:
                 response = pb_utils.InferenceResponse(
@@ -122,7 +131,7 @@ class TritonPythonModel:
             else:
                 # Submit the request to siglip
                 infer_siglip_request = pb_utils.InferenceRequest(
-                    model_name="siglip",
+                    model_name=embed_model,
                     requested_output_names=["EMBEDDING"],
                     inputs=[pixel_values_tt],
                 )
