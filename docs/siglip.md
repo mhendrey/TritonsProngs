@@ -162,13 +162,13 @@ contains the synset category label and a description of the category. This data 
 used for performing the zero-shot accuracy validation. Here is the first
 few lines:
 
-```
-n01440764 tench, Tinca tinca
-n01443537 goldfish, Carassius auratus
-n01484850 great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias
-n01491361 tiger shark, Galeocerdo cuvieri
-n01494475 hammerhead, hammerhead shark
-```
+| Label | Text Description |
+| :----: | :-----------|
+| n01440764 | tench, Tinca tinca |
+| n01443537 | goldfish, Carassius auratus |
+| n01484850 | great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias |
+| n01491361 | tiger shark, Galeocerdo cuvieri |
+| n01494475 | hammerhead, hammerhead shark |
 
 ### 10-Shot Training of KNN Classifier
 As a first check, we will use the training images (10 images per category x 1000
@@ -203,11 +203,11 @@ on the prompt to use.
 
 ### Results
 
-| | Top-1 Accuracy | Top-5 Accuracy | Prompt Template
-|:----:| :-----: | :-----: | :------ |
-| 10-shot | 0.7448 | 0.9153 | |
-| Zero-shot | 0.7266 | 0.9069 | This is a photo from ImageNet's {label} category. This category contains photos of {text}
-| Zero-shot | 0.51 | 0.75 | A photo of {text}
+|           | Top-1 Accuracy | Top-5 Accuracy | Prompt Template |
+|:---------:| :------------: | :------------: | :-------------- |
+|   10-shot | 0.7448         | 0.9153         |                 |
+| Zero-shot | 0.7266         | 0.9069         | This is a photo from ImageNet's {label} category. This category contains photos of {text} |
+| Zero-shot | 0.51           | 0.75           | A photo of {text} |
 
 ### Code
 The code is available in [model_repository/siglip/validate.py](../model_repository/siglip/validate.py)
