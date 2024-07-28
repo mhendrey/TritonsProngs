@@ -140,3 +140,21 @@ Gives the following result on an RTX4090 GPU
 
 Inferences/Second vs. Client Average Batch Latency
 Concurrency: 60, throughput: 111.235 infer/sec, latency 535768 usec
+
+## Validation
+To validate that the model is performing as expected, we use some data from
+[ImageNet](https://www.kaggle.com/competitions/imagenet-object-localization-challenge).
+
+Working with images from the training data set, I put 10 images for each of the 1,000
+categories into `train/{category_synset}` directory on my local machine. An additional
+20 images for each of the 1,000 categories were placed into `valid/{category_synset}".
+
+The training images were embedded using the [embed_image][embed_image.md] Triton
+Inference Server deployed endpoint. These embeddings were used to train an
+`sklearn.neighbors.KNeighborsClassifier`. Thus, we have a 10-shot learning. To classify
+a new embedding vector, the 10 closest neighbors will be used to create a prediction
+based upon the class of those 10 neighbors (weighted by distance to query vector).
+
+We calculate the accuracy of the top-1 and find that we get an accuracy of 74.7%
+
+The code is available in `model_repository/siglip/validate.py`.
