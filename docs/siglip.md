@@ -199,14 +199,15 @@ validation image. We calculate both the top-1 and top-5 accuracy.
 The SigLIP paper claims an ImageNet accuracy of 83.2% on the validation data of
 ImageNet. They paper notes some tweak to the prompts and a few other details to
 improve peformance. The numbers quoted below had just a single round of iterating
-on the prompt to use. 
+on the prompt to use.
 
 ### Results
 
-| | Top-1 Accuracy | Top-5 Accuracy |
-|:----:| :-----: | :-----: |
-| 10-shot | 0.7448 | 0.9153 |
-| Zero-shot | 0.7266 | 0.9069 |
+| | Top-1 Accuracy | Top-5 Accuracy | Prompt Template
+|:----:| :-----: | :-----: | :------ |
+| 10-shot | 0.7448 | 0.9153 | |
+| Zero-shot | 0.7266 | 0.9069 | This is a photo from ImageNet's {label} category. This category contains photos of {text}
+| Zero-shot | 0.51 | 0.75 | A photo of {text}
 
 ### Code
 The code is available in [model_repository/siglip/validate.py](../model_repository/siglip/validate.py)
