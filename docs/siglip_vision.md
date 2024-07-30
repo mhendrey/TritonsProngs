@@ -108,8 +108,9 @@ with ThreadPoolExecutor(max_workers=60) as executor:
 print(embeddings)
 ```
 ## Performance Analysis
-There is some data in `data/siglip_vision/pixel_values.json` which can be used with the
-`perf_analyzer` CLI in the Triton Inference Server SDK container.
+There is some data in [data/siglip_vision](../data/siglip_vision/pixel_values.json)
+which can be used with the `perf_analyzer` CLI in the Triton Inference Server SDK
+container.
 
 ```
 sdk-container:/workspace perf_analyzer \

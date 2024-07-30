@@ -7,17 +7,20 @@ import triton_python_backend_utils as pb_utils
 
 class TritonPythonModel:
     """
-    Triton Inference Server deployment utilizing the python_backend for siglip vision
+    Triton Inference Server deployment utilizing the python_backend for SigLIP Vision
     model.
     """
 
     def initialize(self, args):
-        """_summary_
+        """
+        Initialize SigLIPVisionModel and load configuration parameters. Using
+        torch.compile() to speed up inference. The first few passes through the model
+        may be delayed which torch.compile() does its magic.
 
         Parameters
         ----------
-        args : _type_
-            _description_
+        args : dict
+            Command-line arguments for launching Triton Inference Server
         """
         self.model_config = model_config = json.loads(args["model_config"])
         embedding_config = pb_utils.get_output_config_by_name(model_config, "EMBEDDING")
@@ -46,17 +49,21 @@ class TritonPythonModel:
             self.model = torch.compile(self.model, dynamic=True)
 
     def execute(self, requests: list) -> list:
-        """_summary_
+        """
+        Execute a batch of embedding requests on provided images. Images are the RGB
+        pixel images after being resized to 384x384.
+
+        Shape = (3, 384, 384), dtype=np.float32
 
         Parameters
         ----------
-        requests : list
-            _description_
+        requests : List[pb_utils.InferenceRequest]
+            List of inference requests each containing an image to be embedded.
 
         Returns
         -------
-        list
-            _description_
+        List[pb_utils.InferenceResponse]
+            List of response objects with embedding results or error messages
         """
         logger = pb_utils.Logger
         batch_size = len(requests)

@@ -129,11 +129,11 @@ with ThreadPoolExecutor(max_workers=60) as executor:
 print(embeddings)
 ```
 ## Performance Analysis
-There is some data in `data/embed_image/base64.json` which can be used with the
-`perf_analyzer` CLI in the Triton Inference Server SDK container. The only issue is
-that the `base64_encoded` request parameter needs to be set to `true` (default is
-`false`). This can be done as an option for `perf_analyzer`, but only if used in
-conjunction with `-i grpc`.
+There is some data in [data/embed_image](../data/embed_image/base64.json) which can be
+used with the `perf_analyzer` CLI in the Triton Inference Server SDK container. The
+only issue is that the `base64_encoded` request parameter needs to be set to `true`
+(default is `false`). This can be done as an option for `perf_analyzer`, but only if
+used in conjunction with `-i grpc`.
 
 ```
 sdk-container:/workspace perf_analyzer \
