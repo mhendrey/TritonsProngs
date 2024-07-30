@@ -1,7 +1,7 @@
-name: "siglip"
+name: "siglip_vision"
 backend: "python"
 max_batch_size: 32
-default_model_filename: "siglip.py"
+default_model_filename: "siglip_vision.py"
 
 input [
     {
@@ -21,7 +21,7 @@ output [
 parameters: [
     {
         key: "EXECUTION_ENV_PATH",
-        value: {string_value: "$$TRITON_MODEL_DIRECTORY/siglip.tar.gz"},
+        value: {string_value: "$$TRITON_MODEL_DIRECTORY/siglip_vision.tar.gz"},
     },
     {
         key: "model_path",

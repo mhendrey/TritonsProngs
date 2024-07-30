@@ -1,4 +1,4 @@
-name: siglip
+name: siglip_vision
 channels:
     - pytorch
     - nvidia

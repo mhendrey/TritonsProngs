@@ -1,5 +1,3 @@
-import base64
-from io import BytesIO
 import json
 import torch
 from transformers import SiglipVisionModel
@@ -9,7 +7,8 @@ import triton_python_backend_utils as pb_utils
 
 class TritonPythonModel:
     """
-    Triton Inference Server deployment utilizing the python_backend for siglip model
+    Triton Inference Server deployment utilizing the python_backend for siglip vision
+    model.
     """
 
     def initialize(self, args):
@@ -61,7 +60,7 @@ class TritonPythonModel:
         """
         logger = pb_utils.Logger
         batch_size = len(requests)
-        logger.log_info(f"siglip.execute received {batch_size} requests")
+        logger.log_info(f"siglip_vision.execute received {batch_size} requests")
         responses = [None] * batch_size
         batch_pixel_values = []
         valid_requests = []
@@ -98,8 +97,8 @@ class TritonPythonModel:
             for i in valid_requests:
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(
-                        "Siglip threw error embedding the batch. Check your input "
-                        + "image and/or try again"
+                        "Siglip_vision threw error embedding the batch. Check your "
+                        + "input image and/or try again"
                     )
                 )
                 responses[i] = response

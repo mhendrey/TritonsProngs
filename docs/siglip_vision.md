@@ -1,7 +1,7 @@
-# Siglip
+# SigLIP Vision
 This deployment hosts the [SigLIP](https://huggingface.co/google/siglip-so400m-patch14-384)
-model. It takes in the RGB pixel values for images that have been resized to 384x384
-and returns the embedding vector (d=1152) that can be used for zero-/few-shot image
+vision model. It takes in the RGB pixel values for images that have been resized to 384x384
+and returns the embedding vector (d=1152) that can be used for zero/few-shot image
 classification. Both the input and output are float32.
 
 Dynamic batching is enabled for this deployment, so clients simply send in a single
@@ -38,13 +38,13 @@ inference_request = {
         }
     ]
 }
-siglip_response = requests.post(
-    url=f"{base_url}/siglip/infer",
+siglip_vision_response = requests.post(
+    url=f"{base_url}/siglip_vision/infer",
     json=inference_request,
 ).json()
 
 embedding = np.array(
-    siglip_response["outputs"][0]["data"],
+    siglip_vision_response["outputs"][0]["data"],
     dtype=np.float32
 )
 ```
@@ -68,7 +68,7 @@ import requests
 rng = np.random.default_rng()
 
 pixel_values_batch = rng.normal(
-    loc=0.5, scale=0.5, size=[120, 3, 384, 384]
+    loc=0.5, scale=0.5, size=[60, 3, 384, 384]
 ).astype(np.float32)
 
 
@@ -87,7 +87,7 @@ with ThreadPoolExecutor(max_workers=60) as executor:
             ]
         }
         future = executor.submit(requests.post,
-            url=f"{base_url}/siglip/infer",
+            url=f"{base_url}/siglip_vision/infer",
             json=inference_request,
         )
         futures[future] = i
@@ -108,14 +108,14 @@ with ThreadPoolExecutor(max_workers=60) as executor:
 print(embeddings)
 ```
 ## Performance Analysis
-There is some data in `data/siglip/pixel_values.json` which can be used with the
+There is some data in `data/siglip_vision/pixel_values.json` which can be used with the
 `perf_analyzer` CLI in the Triton Inference Server SDK container.
 
 ```
 sdk-container:/workspace perf_analyzer \
-    -m siglip \
+    -m siglip_vision \
     -v \
-    --input-data data/siglip/pixel_values.json \
+    --input-data data/siglip_vision/pixel_values.json \
     --measurement-mode=time_windows \
     --measurement-interval=20000 \
     --concurrency-range=60 \
@@ -124,27 +124,27 @@ sdk-container:/workspace perf_analyzer \
 Gives the following result on an RTX4090 GPU
 
 * Request concurrency: 60
-  * Pass [1] throughput: 110.037 infer/sec. Avg latency: 538142 usec (std 39934 usec). 
-  * Pass [2] throughput: 112.479 infer/sec. Avg latency: 535327 usec (std 12405 usec). 
-  * Pass [3] throughput: 111.188 infer/sec. Avg latency: 533864 usec (std 7229 usec). 
+  * Pass [1] throughput: 121.352 infer/sec. Avg latency: 488315 usec (std 21956 usec). 
+  * Pass [2] throughput: 122.477 infer/sec. Avg latency: 487771 usec (std 4739 usec). 
+  * Pass [3] throughput: 123.644 infer/sec. Avg latency: 486538 usec (std 4041 usec). 
   * Client: 
-    * Request count: 8010
-    * Throughput: 111.235 infer/sec
-    * Avg client overhead: 0.15%
-    * Avg latency: 535768 usec (standard deviation 24455 usec)
-    * p50 latency: 532695 usec
-    * p90 latency: 552842 usec
-    * p95 latency: 562948 usec
-    * p99 latency: 582094 usec
-    * Avg HTTP time: 535751 usec (send 1142 usec + response wait 534609 usec + receive 0 usec)
+    * Request count: 8821
+    * Throughput: 122.491 infer/sec
+    * Avg client overhead: 0.16%
+    * Avg latency: 487536 usec (standard deviation 13141 usec)
+    * p50 latency: 486777 usec
+    * p90 latency: 494846 usec
+    * p95 latency: 497160 usec
+    * p99 latency: 523129 usec
+    * Avg HTTP time: 487520 usec (send 979 usec + response wait 486541 usec + receive 0 usec)
   * Server: 
-    * Inference count: 8010
-    * Execution count: 270
-    * Successful request count: 8010
-    * Avg request latency: 523216 usec (overhead 48 usec + queue 254808 usec + compute input 8710 usec + compute infer 259454 usec + compute output 194 usec)
+    * Inference count: 8821
+    * Execution count: 295
+    * Successful request count: 8821
+    * Avg request latency: 478045 usec (overhead 25 usec + queue 233130 usec + compute input 8070 usec + compute infer 236598 usec + compute output 221 usec)
 
 * Inferences/Second vs. Client Average Batch Latency
-* Concurrency: 60, throughput: 111.235 infer/sec, latency 535768 usec
+* Concurrency: 60, throughput: 122.491 infer/sec, latency 487536 usec
 
 ## Validation
 To validate that the model is performing as expected, we use some data from
@@ -156,6 +156,18 @@ containing the {synset}_{file_id}.JPEG.
 Working with images from the training data set, I put 10 images for each of the 1,000
 categories into `train/{synset}` directory on my local machine. An additional
 20 images for each of the 1,000 categories were placed into `valid/{synset}`.
+
+```
+train/
+  - n01440764/
+    - n01440764_3198.JPEG
+    - n01440764_3199.JPEG
+    - ...
+  - n01443537/
+    - n01443537_428.JPEG
+    - ...
+  - ...
+```
 
 In addition to the subset of images, I also downloaded the LOC_synset_mapping.txt. This
 contains the synset category label and a description of the category. This data will be
@@ -198,7 +210,7 @@ validation image. We calculate both the top-1 and top-5 accuracy.
 
 The SigLIP paper claims an ImageNet accuracy of 83.2% on the validation data of
 ImageNet. They paper notes some tweak to the prompts and a few other details to
-improve peformance. The numbers quoted below had just a single round of iterating
+improve peformance. The numbers quoted below had just a few rounds of iterating
 on the prompt to use.
 
 ### Results
@@ -206,8 +218,9 @@ on the prompt to use.
 |           | Top-1 Accuracy | Top-5 Accuracy | Prompt Template |
 |:---------:| :------------: | :------------: | :-------------- |
 |   10-shot | 0.7448         | 0.9153         |                 |
+| Zero-shot | 0.5142         | 0.7525         | A photo of {text} |
+| Zero-shot | 0.6503         | 0.8795         | This is a photo containing images of {text}.
 | Zero-shot | 0.7266         | 0.9069         | This is a photo from ImageNet's {label} category. This category contains photos of {text} |
-| Zero-shot | 0.51           | 0.75           | A photo of {text} |
 
 ### Code
-The code is available in [model_repository/siglip/validate.py](../model_repository/siglip/validate.py)
+The code is available in [model_repository/siglip_vision/validate.py](../model_repository/siglip_vision/validate.py)

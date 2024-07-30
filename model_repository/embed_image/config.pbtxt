@@ -24,17 +24,17 @@ parameters: [
         value: {string_value: "$$TRITON_MODEL_DIRECTORY/embed_image.tar.gz"},
     },
     {
-        key: "model_path",
+        key: "embed_models",
         value: {
-            string_value: "/hub/models--google--siglip-so400m-patch14-384/snapshots/7067f6db2baa594bab7c6d965fe488c7ac62f1c8/"
+            string_value: "{\"siglip_vision\": \"/hub/models--google--siglip-so400m-patch14-384/snapshots/7067f6db2baa594bab7c6d965fe488c7ac62f1c8/\"}"
         },
     },
     {
         key: "default_embed_model",
-        value: {string_value: "siglip"},
+        value: {string_value: "siglip_vision"},
     },
     {
-        key: "base64_encoded_default",
+        key: "default_base64_encoded",
         value: {string_value: "false"},
     }
 ]

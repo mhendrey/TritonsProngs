@@ -1,7 +1,7 @@
 # Embed Image
 This is a BLS deployment that lets a client send an image and get back a vector
-embedding. Currently this only uses the [siglip](siglip.md) model, but future
-embedding models could be added.
+embedding. Currently this only uses the [SigLIP Vision](siglip_vision.md) model, but
+future embedding models could be added.
 
 Because dynamic batching has been enabled for these Triton Inference Server
 deployments, clients simply send each request separately. This simplifies the code for
@@ -85,6 +85,11 @@ image_embedding = image_embed_response["outputs"][0]["data"]
 If you want to send a lot of images to be embedded, it's important that you send each
 image request in a multithreaded way to achieve optimal throughput.
 
+NOTE: You will encounter a OSError Too many open files if you send a lot of requests.
+Typically the default ulimit is 1024 on most system. Either increaces this using 
+`ulimit -n {n_files}`, or don't create too many futures before you process them when
+completed.
+
 ```
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
@@ -140,36 +145,37 @@ sdk-container:/workspace perf_analyzer \
     --measurement-interval=20000 \
     --concurrency-range=60 \
     --latency-threshold=1000 \
-    --bls-composing=siglip \
+    --bls-composing=siglip_vision \
     --request-parameter=base64_encoded:true:bool
 ```
 Gives the following result on an RTX4090 GPU
 
 * Request concurrency: 60
-  * Pass [1] throughput: 108.827 infer/sec. Avg latency: 547194 usec (std 44242 usec). 
-  * Pass [2] throughput: 108.265 infer/sec. Avg latency: 545026 usec (std 66473 usec). 
-  * Pass [3] throughput: 110.269 infer/sec. Avg latency: 549658 usec (std 79885 usec). 
+  * Pass [1] throughput: 115.371 infer/sec. Avg latency: 516063 usec (std 23282 usec). 
+  * Pass [2] throughput: 115.021 infer/sec. Avg latency: 518681 usec (std 60638 usec). 
+  * Pass [3] throughput: 116.648 infer/sec. Avg latency: 512635 usec (std 58592 usec). 
   * Client: 
-    * Request count: 7858
-    * Throughput: 109.121 infer/sec
+    * Request count: 8330
+    * Throughput: 115.68 infer/sec
     * Avg client overhead: 0.01%
-    * Avg latency: 547307 usec (standard deviation 43777 usec)
-    * p50 latency: 543346 usec
-    * p90 latency: 587343 usec
-    * p95 latency: 920179 usec
-    * p99 latency: 1007879 usec
-    * Avg gRPC time: 547295 usec (marshal 16 usec + response wait 547279 usec + unmarshal 0 usec)
+    * Avg latency: 515779 usec (standard deviation 18539 usec)
+    * p50 latency: 512234 usec
+    * p90 latency: 529239 usec
+    * p95 latency: 578307 usec
+    * p99 latency: 922477 usec
+    * Avg gRPC time: 515768 usec (marshal 15 usec + response wait 515753 usec + unmarshal 0 usec)
   * Server: 
-    * Inference count: 7858
-    * Execution count: 144
-    * Successful request count: 7858
-    * Avg request latency: 547622 usec (overhead 379345 usec + queue 60917 usec + compute 107360 usec)
+    * Inference count: 8330
+    * Execution count: 146
+    * Successful request count: 8330
+    * Avg request latency: 516205 usec (overhead 355961 usec + queue 58204 usec + compute 102040 usec)
+
   * Composing models: 
-  * siglip, version: 1
-      * Inference count: 7874
-      * Execution count: 1019
-      * Successful request count: 7874
-      * Avg request latency: 168289 usec (overhead 12 usec + queue 60917 usec + compute input * 1967 usec + compute infer 105296 usec + compute output 96 usec)
+  * siglip_vision, version: 1
+      * Inference count: 8373
+      * Execution count: 1046
+      * Successful request count: 8373
+      * Avg request latency: 160259 usec (overhead 15 usec + queue 58204 usec + compute input 1943 usec + compute infer 99988 usec + compute output 108 usec)
 
 * Inferences/Second vs. Client Average Batch Latency
-* Concurrency: 60, throughput: 109.121 infer/sec, latency 547307 usec
+* Concurrency: 60, throughput: 115.68 infer/sec, latency 515779 usec

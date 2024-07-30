@@ -2,19 +2,22 @@
 Collection of Triton Inference Server deployment packages.
 
 ## Image Embedding
-Image embedding is the process of taking an image (pixel values) and running them through
-an embedding model which returns a vector representation of the image. This allows for
-the following example application:
+Image embedding is a technique that transforms visual information from an image into a
+compact numerical representation, typically in the form of a fixed-length vector. A
+good representation captures essential features and characteristics of the image,
+allowing for efficient processing and comparison of visual data in various machine
+learning and computer vision tasks. Some common use cases for image embeddings include:
 
-1. Find images that are similar to a query image
-2. Use the vectors as a starting point for building an image classifier. This allows
-   for making much smaller models that need a lot less labeled example because the
-   the model creator can start from a much richer representation of the image.
-3. Image clustering to combine images together that are similar to allow for faster
-   human reviewing
+* Transfer learning for image classification
+  * Allows for making smaller downstream models that need less labeled data
+* Image search
+  * Find images similar to a known starting image
+  * Find images by giving textual descriptions
+* Face recognition and verification
+* Image clustering and categorization
 
 The [embed_image](docs/embed_image.md) Triton Inference Server deployment allows
 clients to send either the raw bytes of an image or a JSON request of the base64
-encoded image. Current supported models
+encoded image. Current supported models:
 
-* [SigLIP](docs/siglip.md) (default)
+* [SigLIP](docs/siglip_vision.md) (default)

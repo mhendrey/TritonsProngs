@@ -2,9 +2,7 @@ import asyncio
 import base64
 from io import BytesIO
 import json
-import numpy as np
 from PIL import Image
-import torch
 from transformers import AutoProcessor
 
 import triton_python_backend_utils as pb_utils
@@ -12,47 +10,76 @@ import triton_python_backend_utils as pb_utils
 
 class TritonPythonModel:
     """
-    Triton Inference Server deployment utilizing the python_backend for siglip model
+    Triton Inference Server deployment utilizing the python_backend for image embedding
+    models. Currently only SigLIP is supported.
     """
 
     def initialize(self, args):
-        """_summary_
+        """
+        Initialize embedding models' processors and load configuration parameters.
 
         Parameters
         ----------
-        args : _type_
-            _description_
+        args : dict
+            Command-line arguments for launching Triton Inference Server
         """
         self.model_config = model_config = json.loads(args["model_config"])
         embedding_config = pb_utils.get_output_config_by_name(model_config, "EMBEDDING")
         self.embedding_dtype = pb_utils.triton_string_to_numpy(
             embedding_config["data_type"]
         )
-        model_path = model_config["parameters"]["model_path"]["string_value"]
+
+        ## Load the different models needed for processing inputs
+        # Currently just the one model, but this is how to add additional ones
+        embed_models = json.loads(
+            model_config["parameters"]["embed_models"]["string_value"]
+        )
+        self.processors = {}
+        for embed_model, model_path in embed_models.items():
+            if embed_model == "siglip_vision":
+                self.processors[embed_model] = AutoProcessor.from_pretrained(
+                    model_path,
+                    local_files=True,
+                )
+        ## Get additional parameters from the config.pbtxt file
         # bool_value doesn't appear supported forcing using string_value
-        base64_encoded_default_str = model_config["parameters"][
-            "base64_encoded_default"
+        # Specify the default value for base64_encoded request parameter.
+        default_base64_encoded_str = model_config["parameters"][
+            "default_base64_encoded"
         ]["string_value"]
-        if base64_encoded_default_str.lower() == "true":
-            self.base64_encoded_default = True
-        elif base64_encoded_default_str.lower() == "false":
-            self.base64_encoded_default = False
+        if default_base64_encoded_str.lower() == "true":
+            self.default_base64_encoded = True
+        elif default_base64_encoded_str.lower() == "false":
+            self.default_base64_encoded = False
         else:
             raise pb_utils.TritonError(
-                "model_config['parameters']['base64_encoded_default']="
-                + f"{base64_encoded_default_str} must be 'true' | 'false'. "
+                "model_config['parameters']['default_base64_encoded']="
+                + f"{default_base64_encoded_str} must be 'true' | 'false'. "
             )
 
+        # Specify the default embedding model. Can be overriden in request parameter
         self.default_embed_model = model_config["parameters"]["default_embed_model"][
             "string_value"
         ]
-        self.processors = {}
-        self.processors["siglip"] = AutoProcessor.from_pretrained(
-            model_path,
-            local_files=True,
-        )
 
     def process_request(self, request, embed_model: str, base64_encoded: bool):
+        """
+        Process the input image request and prepare pixel values for embedding.
+
+        Parameters
+        ----------
+        request : pb_utils.InferenceRequest
+            Inference request containing the input image.
+        embed_model : str
+            Embedding model to use.
+        base64_encoded : bool
+            Whether the input image is base64 encoded.
+
+        Returns
+        -------
+        np.ndarray
+            Processed pixel values of the input image.
+        """
         try:
             input_image_tt = pb_utils.get_input_tensor_by_name(request, "INPUT_IMAGE")
         except Exception as exc:
@@ -76,33 +103,42 @@ class TritonPythonModel:
             raise ValueError(f"Failed on PIL.Image.open() request data: {exc}")
 
         try:
-            pixel_values_np = self.processors[embed_model](
-                images=images, padding="max_length", return_tensors="pt"
-            )["pixel_values"].numpy()
+            if embed_model == "siglip_vision":
+                pixel_values_np = self.processors[embed_model](
+                    images=images, padding="max_length", return_tensors="pt"
+                )["pixel_values"].numpy()
         except Exception as exc:
-            raise ValueError(f"Failed on SiglipProcessor(images=image): {exc}")
+            raise ValueError(
+                f"Failed on {embed_model}'s Processor(images=image): {exc}"
+            )
 
         # Shape = [batch_size, 3, 384, 384], where batch_size should be 1
         return pixel_values_np
 
     async def execute(self, requests: list) -> list:
         """
-        This is a BLS deployment that allows clients to send either base64 encoded or
-        raw bytes of an image file. This does the processing of the image to get the
-        inputs to be sent to the Siglip deployment, which allows for future conversion
-        to onnx for the GPU workload. This supports dynamic batching of images for
-        processing.
+        Execute a batch of embedding requests on provided images. Images can be
+        sent either as raw bytes or base64 encoded strings.
+
+        Option Request Parameters
+        -------------------------
+        embed_model : str
+            Specify which embedding model to use.
+            If None, default_embed_model is used.
+        base64_encoded : bool
+            Set to true if image is sent base64 encoded.
+            If None, default_base64_encoded is used.
+
 
         Parameters
         ----------
-        requests : list
-            List of pb_utils.InferenceRequest containing an image to be embedded.
+        requests : List[pb_utils.InferenceRequest]
+            List of inference requests each containing an image to be embedded.
 
         Returns
         -------
-        list
-            List of pb_utils.InferenceResponse to be sent back to clients of the
-            embedding vector for the given image sent in the InferenceRequest.
+        List[pb_utils.InferenceResponse]
+            List of response objects with embedding results or error messages
         """
         logger = pb_utils.Logger
         batch_size = len(requests)
@@ -114,7 +150,7 @@ class TritonPythonModel:
             # Handle any request parameters
             request_params = json.loads(request.parameters())
             base64_encoded = request_params.get(
-                "base64_encoded", self.base64_encoded_default
+                "base64_encoded", self.default_base64_encoded
             )
             embed_model = request_params.get("embed_model", self.default_embed_model)
 
@@ -129,22 +165,22 @@ class TritonPythonModel:
                 )
                 responses[batch_id] = response
             else:
-                # Submit the request to siglip
-                infer_siglip_request = pb_utils.InferenceRequest(
+                # Submit the request to embed_model
+                infer_model_request = pb_utils.InferenceRequest(
                     model_name=embed_model,
                     requested_output_names=["EMBEDDING"],
                     inputs=[pixel_values_tt],
                 )
                 # Perform asynchronous inference request
-                inference_response_awaits.append(infer_siglip_request.async_exec())
+                inference_response_awaits.append(infer_model_request.async_exec())
                 valid_requests.append(batch_id)
 
         inference_responses = await asyncio.gather(*inference_response_awaits)
-        for siglip_response, batch_id in zip(inference_responses, valid_requests):
-            if siglip_response.has_error() and responses[batch_id] is None:
+        for model_response, batch_id in zip(inference_responses, valid_requests):
+            if model_response.has_error() and responses[batch_id] is None:
                 err_msg = (
-                    "Error embedding the image with siglip: "
-                    + f"{siglip_response.error().message()}"
+                    "Error embedding the image: "
+                    + f"{model_response.error().message()}"
                 )
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(err_msg)
@@ -152,14 +188,8 @@ class TritonPythonModel:
                 responses[batch_id] = response
             else:
                 embedding_tt = pb_utils.get_output_tensor_by_name(
-                    siglip_response, "EMBEDDING"
+                    model_response, "EMBEDDING"
                 )
-                # embedding_np = (
-                #    pb_utils.get_output_tensor_by_name(siglip_response, "EMBEDDING")
-                #    .as_numpy()
-                #    .reshape(-1)
-                # )
-                # embedding_tt = pb_utils.Tensor("EMBEDDING", embedding_np)
                 response = pb_utils.InferenceResponse(output_tensors=[embedding_tt])
                 responses[batch_id] = response
 
