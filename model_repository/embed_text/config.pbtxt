@@ -1,0 +1,44 @@
+name: "embed_text"
+backend: "python"
+max_batch_size: 60
+default_model_filename: "embed_text.py"
+
+input [
+    {
+        name: "INPUT_TEXT"
+        data_type: TYPE_STRING
+        dims: [1]
+    }
+]
+output [
+    {
+        name: "EMBEDDING"
+        data_type: TYPE_FP32
+        dims: [1152]
+    }
+]
+
+parameters: [
+    {
+        key: "EXECUTION_ENV_PATH",
+        value: {string_value: "$$TRITON_MODEL_DIRECTORY/embed_text.tar.gz"},
+    },
+    {
+        key: "embed_models",
+        value: {
+            string_value: "{\"siglip_text\": \"/hub/models--google--siglip-so400m-patch14-384/snapshots/7067f6db2baa594bab7c6d965fe488c7ac62f1c8/\"}"
+        },
+    },
+    {
+        key: "default_embed_model",
+        value: {string_value: "siglip_text"},
+    }
+]
+instance_group [
+    {
+        kind: KIND_CPU,
+        count: 1
+    }
+]
+version_policy: {latest: {num_versions: 1}}
+dynamic_batching: {}
