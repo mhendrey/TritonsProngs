@@ -20,4 +20,23 @@ The [embed_image](docs/embed_image.md) Triton Inference Server deployment allows
 clients to send either the raw bytes of an image or a JSON request of the base64
 encoded image. Current supported models:
 
-* [SigLIP](docs/siglip_vision.md) (default)
+* [SigLIP Vision](docs/siglip_vision.md) (default)
+
+## Text Embedding
+Text embedding models convert text into dense numerical vectors, capturing semantic
+meaning in a high-dimensional space. These vector representations enable machines to
+process and understand textual data more effectively, facilitating various natural
+language processing tasks.
+
+* Document clustering and classification
+    * Allows for making smaller downstream models that need less labeled data
+* Semantic search and information retrieval
+    * When paired with corresponding image embedding, enables searching for images by writing the alt-text description.
+* Question/Answering Systems
+
+The [embed_text](docs/embed_text.md) deployment is the main interface that should be
+used by most clients. Currently supported models accessible within embed_text:
+
+* [SigLIP Text](docs/siglip_text.md) (default)
+  Use in conjunction with SigLIP Vision to perform zero-shot learning or semantic
+  searching of images with textual descriptions.
