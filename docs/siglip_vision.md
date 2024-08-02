@@ -212,17 +212,23 @@ validation image. We calculate both the top-1 and top-5 accuracy.
 
 The SigLIP paper claims an ImageNet accuracy of 83.2% on the validation data of
 ImageNet. They paper notes some tweak to the prompts and a few other details to
-improve peformance. The numbers quoted below had just a few rounds of iterating
-on the prompt to use.
+improve peformance. The numbers quoted below show a few different variations of
+prompting templates and demonstrate comparable accuracy to the paper.
+
+Interesting to note significant improvement in these scores when `padding="max_length"`
+is set when calling the processor to tokenize the text. I have no explanation why,
+but the Huggingface model card does explicitly call this out. Without padding, top-1
+accuracy falls from 0.8194 -> 0.5142 and top-5 accuracy falls from 0.9630 ->
+0.7525.
 
 ### Results
 
 |           | Top-1 Accuracy | Top-5 Accuracy | Prompt Template |
 |:---------:| :------------: | :------------: | :-------------- |
 |   10-shot | 0.7448         | 0.9153         |                 |
-| Zero-shot | 0.5142         | 0.7525         | A photo of {text} |
-| Zero-shot | 0.6503         | 0.8795         | This is a photo containing images of {text}.
-| Zero-shot | 0.7266         | 0.9069         | This is a photo from ImageNet's {label} category. This category contains photos of {text} |
+| Zero-shot | 0.8194         | 0.9630         | A photo of {text}. |
+| Zero-shot | 0.8063         | 0.9550         | This is a photo containing images of {text}. |
+| Zero-shot | 0.7558         | 0.9210         | This is a photo from ImageNet's {label} category. This category contains photos of {text}. |
 
 ### Code
 The code is available in [model_repository/siglip_vision/validate.py](../model_repository/siglip_vision/validate.py)

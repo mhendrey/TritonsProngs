@@ -228,14 +228,13 @@ images.
 
 The SigLIP paper claims an ImageNet accuracy of 83.2% on the validation data of
 ImageNet. The paper notes some tweak to the prompts and a few other details to
-improve peformance. The numbers quoted below had just a few rounds of iterating
-on the prompt to use.
+improve peformance. The results below show comparable accuracy.
 
 ### Results
 
 |           | Top-1 Accuracy | Top-5 Accuracy | Prompt Template |
 |:---------:| :------------: | :------------: | :-------------- |
-| Zero-shot | 0.7556         | 0.9211         | This is a photo from ImageNet's {label} category. This category contains photos of {text}. |
+| Zero-shot | 0.8193         | 0.9630         | A photo of a {text}. |
 
 ### Code
 The code is available in [model_repository/siglip_text/validate.py](../model_repository/siglip_text/validate.py)

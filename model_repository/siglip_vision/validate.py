@@ -143,12 +143,13 @@ def zero_shot(labels_text: dict):
     X = []
     Y = []
     for label, text in labels_text.items():
-        prompt = (
-            f"This is a photo from ImageNet's {label} category. "
-            + f"This category contains photos of {text}"
-        )
-        # prompt = f"A photo of a {text}" # Signficantly less accuracy
-        inputs = processor(text=prompt).to(device)
+        # prompt = (
+        #    f"This is a photo from ImageNet's {label} category. "
+        #    + f"This category contains photos of {text}."
+        # ) # Least accurate
+        # prompt = f"This is a photo containing images of {text}."  # Less accurate
+        prompt = f"A photo of a {text}."  # Best accuracy
+        inputs = processor(text=prompt, padding="max_length").to(device)
         with torch.no_grad():
             embedding = (
                 model(**inputs)["pooler_output"]

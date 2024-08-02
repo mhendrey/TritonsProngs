@@ -140,10 +140,7 @@ def zero_shot(labels_text: dict):
     with ThreadPoolExecutor(max_workers=60) as executor:
         futures = {}
         for label, text in labels_text.items():
-            prompt = (
-                f"This is a photo from ImageNet's {label} category. "
-                + f"This category contains photos of {text}."
-            )
+            prompt = f"A photo of a {text}."
             future = executor.submit(
                 requests.post,
                 url="http://localhost:8000/v2/models/embed_text/infer",
