@@ -65,6 +65,7 @@ import numpy as np
 from pathlib import Path
 import requests
 
+base_url = "http://localhost:8000/v2/models"
 rng = np.random.default_rng()
 
 pixel_values_batch = rng.normal(

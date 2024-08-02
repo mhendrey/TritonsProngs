@@ -106,7 +106,7 @@ class TritonPythonModel:
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(
                         "siglip_text threw error embedding the batch. Check your "
-                        + "input text and/or try again"
+                        + f"input text and/or try again. {exc}"
                     )
                 )
                 responses[i] = response

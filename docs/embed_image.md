@@ -96,6 +96,8 @@ import numpy as np
 from pathlib import Path
 import requests
 
+base_url = "http://localhost:8000/v2/models"
+
 input_dir = Path("/path/to/image/director/")
 futures = {}
 embeddings = {}

@@ -105,7 +105,7 @@ class TritonPythonModel:
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(
                         "Siglip_vision threw error embedding the batch. Check your "
-                        + "input image and/or try again"
+                        + f"input image and/or try again. {exc}"
                     )
                 )
                 responses[i] = response
