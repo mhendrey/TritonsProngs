@@ -1,0 +1,68 @@
+name: "multilingual_e5_large"
+backend: "python"
+max_batch_size: 32
+default_model_filename: "multilingual_e5_large.py"
+
+input [
+    {
+        name: "INPUT_IDS"
+        data_type: TYPE_INT64
+        dims: [512]
+    }
+]
+output [
+    {
+        name: "EMBEDDING"
+        data_type: TYPE_FP32
+        dims: [1024]
+    }
+]
+
+parameters: [
+    {
+        key: "EXECUTION_ENV_PATH",
+        value: {string_value: "$$TRITON_MODEL_DIRECTORY/multilingual_e5_large.tar.gz"},
+    },
+    {
+        key: "model_path",
+        value: {
+            string_value: "/hub/models--intfloat--multilingual-e5-large/snapshots/ab10c1a7f42e74530fe7ae5be82e6d4f11a719eb/"
+            },
+    }
+]
+instance_group [
+    {
+        kind: KIND_AUTO,
+        count: 1
+    }
+]
+version_policy: {latest: {num_versions: 1}}
+dynamic_batching: {}
+model_warmup: [
+    {
+        name: "batch_size_1"
+        count: 5
+        batch_size: 1
+        inputs: {
+            key: "INPUT_IDS"
+            value: {
+                data_type: TYPE_INT64
+                dims: [512]
+                zero_data: true
+            }
+        }
+    },
+    {
+       name: "batch_size_2"
+       count: 5
+       batch_size: 2
+       inputs: {
+            key: "INPUT_IDS"
+            value: {
+                data_type: TYPE_INT64
+                dims: [512]
+                zero_data: true
+            }
+        }
+    }
+]
