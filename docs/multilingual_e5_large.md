@@ -8,7 +8,7 @@ inputs are integer indices of the tokenizer and the output are float32.
   * Maximum input token size is 512 tokens which is the expected size. Set
     'padding="max_length"' when tokenizing to pad appropriately
   * As specified in the Huggingface model card. You need to prefix your text with
-    "query:" or "passage:" before tokenizing the text
+    "query: " or "passage: " before tokenizing the text. Note the space after the colon
       * Use "query:" & "passage:" correspondingly for asymmetric tasks such as
         passage retrieval in open QA or ad-hoc information retrieval
       * Use "query:" prefix for symmetric tasks such as semantic similarity, bitext
@@ -37,7 +37,7 @@ from transformers import AutoTokenizer
 base_url = "http://localhost:8000/v2/models"
 tokenizer = AutoTokenizer.from_pretrained("intfloat/multilingual-e5-large")
 text = (
-    "query:The iridescent chameleon sauntered across the neon-lit cyberpunk cityscape."
+    "query: The iridescent chameleon sauntered across the neon-lit cyberpunk cityscape."
 )
 input_ids = tokenizer(text, padding="max_length")["input_ids"]
 

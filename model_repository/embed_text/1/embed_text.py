@@ -1,6 +1,6 @@
 import asyncio
 import json
-from transformers import AutoProcessor
+from transformers import AutoProcessor, AutoTokenizer
 
 import triton_python_backend_utils as pb_utils
 
@@ -35,6 +35,11 @@ class TritonPythonModel:
         for embed_model, model_path in embed_models.items():
             if embed_model == "siglip_text":
                 self.processors[embed_model] = AutoProcessor.from_pretrained(
+                    model_path,
+                    local_files=True,
+                )
+            elif embed_model == "multilingual_e5_large":
+                self.processors[embed_model] = AutoTokenizer.from_pretrained(
                     model_path,
                     local_files=True,
                 )
@@ -73,16 +78,28 @@ class TritonPythonModel:
             raise ValueError(f"Failed on converting numpy to str request data: {exc}")
 
         try:
-            if embed_model == "siglip_text":
-                input_ids_np = self.processors[embed_model](
-                    text=input_text, padding="max_length", return_tensors="pt"
-                )["input_ids"].numpy()
+            input_ids_np = self.processors[embed_model](
+                text=input_text, padding="max_length", return_tensors="pt"
+            )["input_ids"].numpy()
+            n_tokens = input_ids_np.shape[-1]
+
+            # Check that we don't exceed max length.
+            # We could set truncation=True in the call, but that seems dangerously silent
+            # for something that might severely impact performance.
+            if embed_model == "multilingual_e5_large" and n_tokens > 512:
+                raise ValueError(
+                    f"Processing {input_text} has {n_tokens} tokens which exceeds max of 512."
+                )
+            if embed_model == "siglip_text" and n_tokens > 64:
+                raise ValueError(
+                    f"Processing {input_text} has {n_tokens} tokens which exceeds max of 64."
+                )
         except Exception as exc:
             raise ValueError(
                 f"Failed on {embed_model}'s Processor(text=input_text): {exc}"
             )
 
-        # Shape = [batch_size, 64], where batch_size should be 1
+        # Shape = [batch_size, 512 or 64], where batch_size should be 1
         return input_ids_np
 
     async def execute(self, requests: list) -> list:

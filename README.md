@@ -37,6 +37,9 @@ language processing tasks.
 The [embed_text](docs/embed_text.md) deployment is the main interface that should be
 used by most clients. Currently supported models accessible within embed_text:
 
-* [SigLIP Text](docs/siglip_text.md) (default)
+* [Multilingual E5 Text](docs/multilingual_e5_large.md) (default)
+  Trained specifically to support multilingual retrieval capabilities, cross-lingual
+  similarity search, and multilingual document classification.
+* [SigLIP Text](docs/siglip_text.md)
   Use in conjunction with SigLIP Vision to perform zero-shot learning or semantic
   searching of images with textual descriptions.
