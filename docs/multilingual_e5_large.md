@@ -157,29 +157,31 @@ sdk-container:/workspace perf_analyzer \
 ```
 Gives the following result on an RTX4090 GPU
 
-* Request concurrency: 60
-  * Pass [1] throughput: 275.263 infer/sec. Avg latency: 216633 usec (std 27152 usec). 
-  * Pass [2] throughput: 274.344 infer/sec. Avg latency: 219297 usec (std 22437 usec). 
-  * Pass [3] throughput: 275.336 infer/sec. Avg latency: 217777 usec (std 21607 usec). 
-  * Client: 
-    * Request count: 19817
-    * Throughput: 274.981 infer/sec
-    * Avg client overhead: 0.02%
-    * Avg latency: 217900 usec (standard deviation 23884 usec)
-    * p50 latency: 220459 usec
-    * p90 latency: 230596 usec
-    * p95 latency: 234664 usec
-    * p99 latency: 242773 usec
-    * Avg HTTP time: 217950 usec (send 63 usec + response wait 217887 usec + receive 0 usec)
-  * Server: 
-    * Inference count: 19811
-    * Execution count: 646
-    * Successful request count: 19811
-    * Avg request latency: 217499 usec (overhead 26 usec + queue 105977 usec +
-      compute input 171 usec + compute infer 111101 usec + compute output 222 usec)
 
-Inferences/Second vs. Client Average Batch Latency
-Concurrency: 60, throughput: 274.981 infer/sec, latency 217900 usec
+* Request concurrency: 60
+  * Pass [1] throughput: 283.692 infer/sec. Avg latency: 210358 usec (std 43074 usec). 
+  * Pass [2] throughput: 285.814 infer/sec. Avg latency: 210039 usec (std 41954 usec). 
+  * Pass [3] throughput: 285.9 infer/sec. Avg latency: 209959 usec (std 41938 usec). 
+  * Client: 
+    * Request count: 20537
+    * Throughput: 285.136 infer/sec
+    * Avg client overhead: 0.02%
+    * Avg latency: 210118 usec (standard deviation 29881 usec)
+    * p50 latency: 206747 usec
+    * p90 latency: 252549 usec
+    * p95 latency: 252905 usec
+    * p99 latency: 255893 usec
+    * Avg HTTP time: 210110 usec (send 66 usec + response wait 210044 usec + receive 0 usec)
+  * Server: 
+    * Inference count: 20537
+    * Execution count: 857
+    * Successful request count: 20537
+    * Avg request latency: 209706 usec (overhead 20 usec + queue 125809 usec +
+      compute input 150 usec + compute infer 83553 usec + compute output 172 usec)
+
+* Inferences/Second vs. Client Average Batch Latency
+* Concurrency: 60, throughput: 285.136 infer/sec, latency 210118 usec
+
 
 
 ## Validation

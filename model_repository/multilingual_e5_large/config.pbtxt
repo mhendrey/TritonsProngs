@@ -1,6 +1,6 @@
 name: "multilingual_e5_large"
 backend: "python"
-max_batch_size: 32
+max_batch_size: 24
 default_model_filename: "multilingual_e5_large.py"
 
 input [
@@ -68,7 +68,7 @@ model_warmup: [
     {
        name: "batch_size_3"
        count: 5
-       batch_size: 32
+       batch_size: 24
        inputs: {
             key: "INPUT_IDS"
             value: {
