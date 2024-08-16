@@ -55,7 +55,20 @@ model_warmup: [
     {
        name: "batch_size_2"
        count: 5
-       batch_size: 2
+       batch_size: 17
+       inputs: {
+            key: "INPUT_IDS"
+            value: {
+                data_type: TYPE_INT64
+                dims: [512]
+                zero_data: true
+            }
+        }
+    },
+    {
+       name: "batch_size_3"
+       count: 5
+       batch_size: 32
        inputs: {
             key: "INPUT_IDS"
             value: {
@@ -65,4 +78,5 @@ model_warmup: [
             }
         }
     }
+
 ]
