@@ -83,17 +83,27 @@ class TritonPythonModel:
             )["input_ids"].numpy()
             n_tokens = input_ids_np.shape[-1]
 
-            # Check that we don't exceed max length.
-            # We could set truncation=True in the call, but that seems dangerously silent
-            # for something that might severely impact performance.
-            if embed_model == "multilingual_e5_large" and n_tokens > 512:
-                raise ValueError(
-                    f"Processing {input_text} has {n_tokens} tokens which exceeds max of 512."
-                )
-            if embed_model == "siglip_text" and n_tokens > 64:
-                raise ValueError(
-                    f"Processing {input_text} has {n_tokens} tokens which exceeds max of 64."
-                )
+            # Safety Checks
+            if embed_model == "multilingual_e5_large":
+                # Could set truncation=True, but that seems dangerously silent for
+                # something that could severely impact performance
+                if n_tokens > 512:
+                    raise ValueError(
+                        f"Processing {input_text} has {n_tokens} tokens which exceeds max of 512."
+                    )
+                for text in input_text:
+                    if not (text.startswith("query: ") or text.startswith("passage: ")):
+                        raise ValueError(
+                            f"Processing {text} must start with 'query: ' or"
+                            + f"'passage: ' prefix when using {embed_model}"
+                        )
+            elif embed_model == "siglip_text":
+                # Could set truncation=True, but that seems dangerously silent for
+                # something that could severely impact performance
+                if n_tokens > 64:
+                    raise ValueError(
+                        f"Processing {input_text} has {n_tokens} tokens which exceeds max of 64."
+                    )
         except Exception as exc:
             raise ValueError(
                 f"Failed on {embed_model}'s Processor(text=input_text): {exc}"
@@ -132,6 +142,14 @@ class TritonPythonModel:
             # Handle any request parameters
             request_params = json.loads(request.parameters())
             embed_model = request_params.get("embed_model", self.default_embed_model)
+
+            if embed_model not in self.processors:
+                responses[batch_id] = pb_utils.InferenceResponse(
+                    error=pb_utils.TritonError(
+                        f"{embed_model=:} not in {self.processors.keys()}"
+                    )
+                )
+                continue
 
             try:
                 input_ids_np = self.process_request(request, embed_model)

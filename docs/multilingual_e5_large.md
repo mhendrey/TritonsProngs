@@ -185,68 +185,44 @@ Gives the following result on an RTX4090 GPU
 
 
 ## Validation
-**TODO**
+To validate that the model is performing as expected, we calculate the performance on the
+[BUCC Bitext Mining dataset](https://huggingface.co/datasets/mteb/bucc-bitext-mining)
+and compare the performance against results published in the
+[Multilingual E5 Text Embeddings: A Technical Report](https://arxiv.org/abs/2402.05672).
 
-**THIS IS JUST THE COPY FORM THE siglip_text**
-To validate that the model is performing as expected, we use some data from
-[ImageNet](https://www.kaggle.com/competitions/imagenet-object-localization-challenge).
-The training data was nicely organized into subdirectories with each subdirectory
-named after the Synset category and with each file name in a give subdirectory also
-containing the {synset}_{file_id}.JPEG.
+This dataset consists of 4 separate dataset with pairs of sentences in [zh-en, fr-en,
+de-en, and ru-en]. Table 5 in the paper reports that the Multilingual E5 large model
+achieved **98.6** on this benchmark. Unfortunately the paper doesn't give any details
+as to how they did the evaluation. In particular, the BUCC Biitext Mining dataset is
+supposed to consist of non-parallel sentences with only about 2-3% of the sentences
+having a corresponding translated sentence in the other language. However, the
+Huggingface test data has aligned sentences. This may make the task much too easy, but
+we will proceed in the absence of more information.
 
-Working with images from the training data set, I put 10 images for each of the 1,000
-categories into `train/{synset}` directory on my local machine. An additional
-20 images for each of the 1,000 categories were placed into `valid/{synset}`.
+For each language pair dataset, we query with one side and calculate the top-1 accuracy
+of finding the corresponding pair in the other language. We calculate a weighted
+average across the four sets of language pairs to get a single number. We use
+approximate nearest neighbors to perform the search of the 4 nearest neighbors based
+upon the cosine distance. We then perform two separate reranking methods before
+choosing the top nearest neighbor from this candidate list.  The first is just the
+cosine distance itself. The second is based upon a margin scoring approach that is
+referenced in the technical approach. This approach is outlined in
+[Margin-based Parallel Corpus Mining with Multilingual Sentence Embeddings](https://arxiv.org/abs/1811.01136).
 
-```
-train/
-  - n01440764/
-    - n01440764_3198.JPEG
-    - n01440764_3199.JPEG
-    - ...
-  - n01443537/
-    - n01443537_428.JPEG
-    - ...
-  - ...
-```
-
-In addition to the subset of images, I also downloaded the LOC_synset_mapping.txt. This
-contains the synset category label and a description of the category. This data will be
-used for performing the zero-shot accuracy validation. Here is the first
-few lines:
-
-| Label | Text Description |
-| :----: | :-----------|
-| n01440764 | tench, Tinca tinca |
-| n01443537 | goldfish, Carassius auratus |
-| n01484850 | great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias |
-| n01491361 | tiger shark, Galeocerdo cuvieri |
-| n01494475 | hammerhead, hammerhead shark |
-
-### Zero-Shot KNN Classifier
-The [SigLIP paper](https://arxiv.org/abs/2303.15343) uses zero-shot to measure the
-quality of their embedding model. For zero-shot, you use a text description of the
-category and embed that using the
-[SiglipTextModel](https://huggingface.co/docs/transformers/en/model_doc/siglip#transformers.SiglipTextModel).
-This text embedding of the category is what is used to fit a KNN Classifier. Taking
-each validation image embedding, get the 10 nearest neighbors (where a neighbor is a
-text embedding of a category), and use the neighbors' corresponding category label to
-predict the classification of the validation image. We calculate both the top-1 and
-top-5 accuracy where top-k means the classifier was correct if the true label appears
-among the top k predicted category labels.
-
-The [siglip_vision][siglip_vision.md] deployment is used to embed the validation
-images.
-
-The SigLIP paper claims an ImageNet accuracy of 83.2% on the validation data of
-ImageNet. The paper notes some tweak to the prompts and a few other details to
-improve peformance. The results below show comparable accuracy.
+The code can be found in the [validate.py](../model_repository/multilingual_e5_large/validate.py)
+file.
 
 ### Results
 
-|           | Top-1 Accuracy | Top-5 Accuracy | Prompt Template |
-|:---------:| :------------: | :------------: | :-------------- |
-| Zero-shot | 0.8193         | 0.9630         | A photo of a {text}. |
+| Language Pairs | Margin Accuracy | Cosine Accuracy | # of Records |
+| :------------: | :-------------: | :-------------: | :----------: |
+| zh-en | 99.53 | 99.26 | 1,899 |
+| fr-en | 99.00 | 98.62 | 9,086 |
+| de-en | 99.61 | 99.52 | 9,580 |
+| ru-en | 97.94 | 97.74 | 14,435|
+| **Mean** | **98.76** | **98.54** | |
+
+These match well with the reported 98.6 in the technical report.
 
 ### Code
-The code is available in [model_repository/siglip_text/validate.py](../model_repository/siglip_text/validate.py)
+The code is available in [model_repository/multilingual_e5_large/validate.py](../model_repository/multilingual_e5_large/validate.py)
