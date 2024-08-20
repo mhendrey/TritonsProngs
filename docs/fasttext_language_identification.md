@@ -9,7 +9,10 @@ This is a very lightweight model that runs on the CPU. Dynamic batching is enabl
 each request separately.
 
 The model sends back three arrays
-  * SRC_LANG: List of predicted language codes sorted most likely to least
+  * SRC_LANG: List of predicted language codes sorted most likely to least. Seems to
+    mostly be the ISO 639-3 codes according to the [NLLB paper](https://research.facebook.com/file/585831413174038/No-Language-Left-Behind--Scaling-Human-Centered-Machine-Translation.pdf),
+    but not always. See for example, "arb" for Arabic, but the ISO 639-3 for Arabic is
+    "ara".
   * SRC_SCRIPT: List of the accompanying script
   * PROBABILITY: List of the accompanying probability
 
