@@ -1,18 +1,45 @@
 version: '3.8'
 
+x-base_inference_service: &base_inference_service
+  image: ${TRITON_INFERENCE_SERVER_IMAGE:-nvcr.io/nvidia/tritonserver}:${TRITON_INFERENCE_SERVER_TAG:-24.07-py3}
+  command:
+    - sh
+    - -c
+    - |
+      tritonserver \
+      --model-repository=${TRITON_INFERENCE_SERVER_MODEL_REPO:-/model-repository} \
+      --model-control-mode=${TRITON_INERENCE_SERVER_MODEL_CONTROL_MODE:-none} \
+      --model-config-name=${TRITON_INERENCE_SERVER_MODEL_CONFIG_NAME:-"config"} \
+      --log-verbose=1 \
+      --log-format=ISO8601 \
+      --log-info=true \
+      --http-header-forward-pattern=".*" \
+      --exit-on-error=false
+  environment:
+    - PYTHONNOUSERSITE=True
+    - PYTHONDONTWRITEBYTECODE=1
+    - LOG_LEVEL=DEBUG
+    - MODEL_CACHE_DIR=/models
+  ports:
+    - 8000:8000
+    - 8001:8001
+    - 8002:8002
+  restart: "no"
+  shm_size: "1gb"
+  volumes:
+    - ./model-repository:/model-repository:z
+    - /home/$USER/.cache/huggingface/hub:/hub
+
 services:
-  inferV1:
-    image: nvcr.io/nvidia/tritonserver:24.05-pyt-python-py3
-    user: triton-server
-    command: sh -c "tritonserver --model-repository=/models"
-    shm_size: "1gb"
-    volumes:
-      - ./model_repository:/models
-      - /home/$USER/.cache/huggingface/hub:/hub
-    ports:
-      - 8000:8000
-      - 8001:8001
-      - 8002:8002
+  inference_cpu:
+    <<: *base_inference_service
+    container_name: triton-inference-server-cpu
+    profiles:
+      - cpu
+
+  inference_gpu:
+    <<: *base_inference_service
+    container_name: triton-inference-server-gpu
     deploy:
       resources:
         reservations:
@@ -20,3 +47,20 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+    profiles:
+      - gpu
+
+  conda-pack-builder:
+    image: local/conda-pack-builder:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BASE_IMAGE=${COMPOSE_CONDA_PACK_BASE_IMAGE:-mambaorg/micromamba}
+    network_mode: "host"
+    profiles:
+      - build
+    volumes:
+      - ./model-repository:/model-repository:z
+
+
