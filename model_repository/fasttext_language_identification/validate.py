@@ -1,40 +1,48 @@
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datasets import load_dataset
 import requests
 from sklearn import metrics
 
 
-def predict_lang_id(
-    text: str,
-    top_k: int = 1,
-    threshold: float = 0.0,
+def predict_lang_ids(
+    texts: list[str],
     base_url: str = "http://localhost:8000/v2/models",
+    max_workers: int = 60,
 ):
-    inference_json = {
-        "parameters": {"top_k": top_k, "threshold": threshold},
-        "inputs": [
-            {
-                "name": "INPUT_TEXT",
-                "shape": [1, 1],
-                "datatype": "BYTES",
-                "data": [text],
+    n = len(texts)
+    predictions = [None] * n
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {}
+        for i, text in enumerate(texts):
+            inference_json = {
+                "inputs": [
+                    {
+                        "name": "INPUT_TEXT",
+                        "shape": [1, 1],
+                        "datatype": "BYTES",
+                        "data": [text],
+                    }
+                ],
             }
-        ],
-    }
-    response_json = requests.post(
-        url=f"{base_url}/fasttext_language_identification/infer",
-        json=inference_json,
-    ).json()
-    try:
-        outputs = response_json["outputs"]
-        result = []
-        for lang_id, script, prob in zip(
-            outputs[0]["data"], outputs[1]["data"], outputs[2]["data"]
-        ):
-            result.append({"lang_id": lang_id, "script": script, "probability": prob})
-        return result
-    except:
-        return response_json
+            future = executor.submit(
+                requests.post,
+                url=f"{base_url}/fasttext_language_identification/infer",
+                json=inference_json,
+            )
+            futures[future] = i
+
+        # Gather results
+        for future in as_completed(futures):
+            i = futures[future]
+            try:
+                response_json = future.result().json()
+                outputs = response_json["outputs"]
+                predictions[i] = outputs[0]["data"][0]
+            except:
+                return response_json
+
+    return predictions
 
 
 def main():
@@ -62,18 +70,24 @@ def main():
     flores = load_dataset("facebook/flores", "all", split="devtest")
     Y_true = defaultdict(list)
     Y_pred = defaultdict(list)
-    for batch in flores.iter(batch_size=500):
+
+    for i, batch in enumerate(flores.iter(batch_size=500)):
+        print(
+            f"Starting on batch {i:03}, batch_size = {len(batch['sentence_eng_Latn'])}"
+        )
         for lang in test_langs_f1:
             sent_key = f"sentence_{lang}"
-            for sentence in batch[sent_key]:
-                lang_id_true, _ = lang.split("_")
-                Y_true[lang_id_true].append(lang_id_true)
-                Y_pred[lang_id_true].append(predict_lang_id(sentence)[0]["lang_id"])
+            lang_id, _ = lang.split("_")
+            n = len(batch[sent_key])
+            Y_true[lang_id] += [lang_id] * n
+            Y_pred[lang_id] += predict_lang_ids(batch[sent_key])
 
     for lang in test_langs_f1:
         lang_id, _ = lang.split("_")
         f1_score = metrics.f1_score(Y_true[lang_id], Y_pred[lang_id], average="micro")
-        print(f"{lang} Reported f1={test_langs_f1[lang]:.3f}, Measured={f1_score:.3f}")
+        print(
+            f"{lang} N={len(Y_true[lang_id]):} Reported f1={test_langs_f1[lang]:.3f}, Measured={f1_score:.3f}"
+        )
 
 
 if __name__ == "__main__":
