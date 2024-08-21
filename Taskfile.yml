@@ -1,0 +1,40 @@
+version: '3'
+
+dontenv: ['task.env']
+
+tasks:
+  clean:
+    cmds:
+      - docker system prune -f --volumes
+
+  triton-start:
+    deps: [build-execution-envs, triton-import]
+    vars: 
+      COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'
+    cmds:
+      - docker compose -f docker-compose.yml --profile {{.COMPUTE_TYPE}} up -d
+    preconditions:
+      - test -f ./model-repository/.../.tar.gz
+
+  build-execution-env:
+    vars:
+      CONDA_ENV_NAME:
+      CONDA_ENV_FILE_PATH:
+      CONDA_PACKED_OUTPUT_FILE_PATH:
+    cmds:
+      - |
+        rm -f .{{CONDA_PACKED_OUTPUT_FILE_PATH}} && \
+        printf "Building conda pack file {{.CONDA_PACKED_OUTPUT_FILE_PATH}} for {{.CONDA_ENV_NAME}} using {{.CONDA_ENV_FILE_PATH}}\n\n" && \
+        docker compose run \ 
+        --rm \ 
+        --no-deps \
+        --interactive=false \ 
+        --env CONDA_ENV_NAME={{.CONDA_ENV_NAME}} \
+        --env CONDA_ENV_FILE_PATH={{.CONDA_ENV_FILE_PATH}} \
+        --env CONDA_PACKED_OUTPUT_FILE_PATH={{.CONDA_PACKED_OUTPUT_FILE_PATH}} \
+        conda-packer-builder
+    sources:
+      - '.{{.CONDA_ENV_FILE_PATH}}'
+    generates:
+      - '.{{.CONDA_PACKED_OUTPUT_FILE_PATH}}'
+      
