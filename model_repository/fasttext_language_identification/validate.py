@@ -82,11 +82,13 @@ def main():
             Y_true[lang_id] += [lang_id] * n
             Y_pred[lang_id] += predict_lang_ids(batch[sent_key])
 
+    print(f"| Language | Num Records | Reported F1 | Measured F1 |")
+    print(f"| :------: | :---------: | :---------: | :---------: |")
     for lang in test_langs_f1:
         lang_id, _ = lang.split("_")
         f1_score = metrics.f1_score(Y_true[lang_id], Y_pred[lang_id], average="micro")
         print(
-            f"{lang} N={len(Y_true[lang_id]):} Reported f1={test_langs_f1[lang]:.3f}, Measured={f1_score:.3f}"
+            f"| {lang} | {len(Y_true[lang_id])} | {test_langs_f1[lang]:.3f} | {f1_score:.3f} |"
         )
 
 

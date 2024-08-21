@@ -252,46 +252,50 @@ Gives the following result on an RTX4090 GPU
 
 
 ## Validation
-**TODO**
+Validation of the model is done using the [Flores-200](https://huggingface.co/datasets/facebook/flores)
+dataset. This is the dataset Meta put together for creating this model and the No
+Language Left Behind machine translation model. The results of the language
+identification model are reported in the [NLLB paper](https://arxiv.org/abs/2207.04672)
+in Table 49. For validating this deployment, a few languages were chosen to allow for
+comparison. 
 
-To validate that the model is performing as expected, we calculate the performance on the
-[BUCC Bitext Mining dataset](https://huggingface.co/datasets/mteb/bucc-bitext-mining)
-and compare the performance against results published in the
-[Multilingual E5 Text Embeddings: A Technical Report](https://arxiv.org/abs/2402.05672).
+The Flores-200 dataset in Huggingface has both "dev" and "devtest" available. The
+"devtest" split is used for validation. This provides 1,012 sentences for each of the
+204 language + script combinations available. Each record, contains the same sentence
+in the different languge + script combinations.  Validation is done using 18 different
+{lang_id}_{script}.
 
-This dataset consists of 4 separate dataset with pairs of sentences in [zh-en, fr-en,
-de-en, and ru-en]. Table 5 in the paper reports that the Multilingual E5 large model
-achieved **98.6** on this benchmark. Unfortunately the paper doesn't give any details
-as to how they did the evaluation. In particular, the BUCC Biitext Mining dataset is
-supposed to consist of non-parallel sentences with only about 2-3% of the sentences
-having a corresponding translated sentence in the other language. However, the
-Huggingface test data has aligned sentences. This may make the task much too easy, but
-we will proceed in the absence of more information.
-
-For each language pair dataset, we query with one side and calculate the top-1 accuracy
-of finding the corresponding pair in the other language. We calculate a weighted
-average across the four sets of language pairs to get a single number. We use
-approximate nearest neighbors to perform the search of the 4 nearest neighbors based
-upon the cosine distance. We then perform two separate reranking methods before
-choosing the top nearest neighbor from this candidate list.  The first is just the
-cosine distance itself. The second is based upon a margin scoring approach that is
-referenced in the technical approach. This approach is outlined in
-[Margin-based Parallel Corpus Mining with Multilingual Sentence Embeddings](https://arxiv.org/abs/1811.01136).
-
-The code can be found in the [validate.py](../model_repository/multilingual_e5_large/validate.py)
-file.
+Only the top predicted language is used to determine the F1 score in order to compare
+to Table 49 in the NLLB paper.  The results are shown here:
 
 ### Results
 
-| Language Pairs | Margin Accuracy | Cosine Accuracy | # of Records |
-| :------------: | :-------------: | :-------------: | :----------: |
-| zh-en | 99.53 | 99.26 | 1,899 |
-| fr-en | 99.00 | 98.62 | 9,086 |
-| de-en | 99.61 | 99.52 | 9,580 |
-| ru-en | 97.94 | 97.74 | 14,435|
-| **Mean** | **98.76** | **98.54** | |
+| Language | Num Records | Reported F1 | Measured F1 |
+| :------: | :---------: | :---------: | :---------: |
+| arb_Arab | 1012 | 0.969 | 1.000 |
+| bam_Latn | 1012 | 0.613 | 0.881 |
+| cat_Latn | 1012 | 0.993 | 1.000 |
+| deu_Latn | 1012 | 0.991 | 1.000 |
+| ell_Grek | 1012 | 1.000 | 1.000 |
+| eng_Latn | 1012 | 0.970 | 1.000 |
+| hin_Deva | 1012 | 0.892 | 0.998 |
+| pes_Arab | 1012 | 0.968 | 0.983 |
+| nob_Latn | 1012 | 0.985 | 0.993 |
+| pol_Latn | 1012 | 0.988 | 1.000 |
+| prs_Arab | 1012 | 0.544 | 0.333 |
+| rus_Cyrl | 1012 | 1.000 | 1.000 |
+| sin_Sinh | 1012 | 1.000 | 1.000 |
+| tam_Taml | 1012 | 1.000 | 1.000 |
+| jpn_Jpan | 1012 | 0.986 | 0.982 |
+| kor_Hang | 1012 | 0.994 | 1.000 |
+| vie_Latn | 1012 | 0.991 | 1.000 |
+| zho_Hans | 1012 | 0.854 | 0.818 |
 
-These match well with the reported 98.6 in the technical report.
+For the most part these seem to agree well. In most cases, the reported matches or
+exceeds the measured except for Dari (prs) and Chinese (zho). Using the "dev" split,
+gives different results for those two languages. This suggests that more data is
+needed to get a more stable result to match the paper's published results. But for this
+purpose, the model seems to be working as intended.
 
 ### Code
-The code is available in [model_repository/multilingual_e5_large/validate.py](../model_repository/multilingual_e5_large/validate.py)
+The code is available in [model_repository/fasttext_language_identification/validate.py](../model_repository/fasttext_language_identification/validate.py)
