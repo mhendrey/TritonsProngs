@@ -8,13 +8,15 @@ tasks:
       - docker system prune -f --volumes
 
   triton-start:
+    #TODO: define all the conda build envs and triton-import pulling in models 
     #deps: [build-execution-envs, triton-import]
     vars: 
       COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'
     cmds:
       - docker compose -f docker-compose.yml --profile {{.COMPUTE_TYPE}} up -d
     preconditions:
-      - test -f ./model-repository/.../.tar.gz
+      - test -f ./model-repository/embed_image/embed_image.tar.gz
+      - test -f ./model-repository/embed_text/embed_text.tar.gz
 
   build-embed_image-env:
     cmds:
