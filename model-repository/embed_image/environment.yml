@@ -1,4 +1,4 @@
-name: embed_text
+name: embed_image
 channels:
     - pytorch
     - conda-forge
@@ -13,3 +13,4 @@ dependencies:
     - transformers ==4.42.4
     - sentencepiece ==0.2.0
     - pillow ==10.4.0
+    - conda-pack
