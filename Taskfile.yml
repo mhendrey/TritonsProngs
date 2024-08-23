@@ -18,24 +18,31 @@ tasks:
       - test -f ./model-repository/embed_image/embed_image.tar.gz
       - test -f ./model-repository/embed_text/embed_text.tar.gz
 
-  build-embed_image-env:
+  triton-stop:
+    vars:
+      COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'
     cmds:
-      - task: build-execution-env
-        vars:
-          CONDA_ENV_NAME: embed_image
-          CONDA_ENV_FILE_PATH: /model-repository/embed_image/environment.yml
-          CONDA_PACKED_OUTPUT_FILE_PATH: /model-repository/embed_image/embed_image.tar.gz
+      - docker compose -f docker-compose.yml --profile {{.COMPUTE_TYPE}} down 
 
-  build-embed_text-env:
+  triton-infer:
+    desc: "This task is not yet implemented"
     cmds:
-      - task: build-execution-env
-        vars:
-          CONDA_ENV_NAME: embed_text
-          CONDA_ENV_FILE_PATH: /model-repository/embed_text/environment.yml
-          CONDA_PACKED_OUTPUT_FILE_PATH: /model-repository/embed_text/embed_text.tar.gz
-         
+      - println "Task 'my-task' is not yet implemented."     
 
-  build-execution-env:
+  build-*-env:
+    vars:
+      MODEL: '{{index .MATCH 0}}'
+    label: 'build-{{.MODEL}}-env'  
+    cmds:
+      - task: build-execution-env-internal
+        vars:     
+          CONDA_ENV_NAME: '{{.MODEL}}'
+          CONDA_ENV_FILE_PATH: '/model-repository/{{.MODEL}}/environment.yml'
+          CONDA_PACKED_OUTPUT_FILE_PATH: '/model-repository/{{.MODEL}}/{{.MODEL}}.tar.gz'
+    preconditions:
+      - test -d "./model-repository/{{.MODEL}}"     
+
+  build-execution-env-internal:
     internal: true
     cmds:
       - >
@@ -49,7 +56,6 @@ tasks:
         --env CONDA_ENV_FILE_PATH={{.CONDA_ENV_FILE_PATH}} 
         --env CONDA_PACKED_OUTPUT_FILE_PATH={{.CONDA_PACKED_OUTPUT_FILE_PATH}} 
         conda-pack-builder
-
     sources:
       - '.{{.CONDA_ENV_FILE_PATH}}'
     generates:
