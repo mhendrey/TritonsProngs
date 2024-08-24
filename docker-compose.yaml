@@ -4,7 +4,7 @@ services:
   inferV1:
     image: nvcr.io/nvidia/tritonserver:24.05-pyt-python-py3
     user: triton-server
-    command: sh -c "tritonserver --model-repository=/models --model-control-mode explicit --load-model fasttext_language_identification"
+    command: sh -c "tritonserver --model-repository=/models --model-control-mode explicit --load-model sentencex"
     shm_size: "1gb"
     volumes:
       - ./model_repository:/models

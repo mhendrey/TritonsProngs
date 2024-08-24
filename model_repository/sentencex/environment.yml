@@ -1,0 +1,10 @@
+name: sentencex
+channels:
+    - conda-forge
+    - defaults
+dependencies:
+    - python ==3.10.12
+    - numpy ==1.26.4
+    - pip
+    - pip:
+        - sentencex ==0.6.1
