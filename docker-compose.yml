@@ -8,8 +8,11 @@ x-base_inference_service: &base_inference_service
     - |
       tritonserver \
       --model-repository=${TRITON_INFERENCE_SERVER_MODEL_REPO:-/model-repository} \
-      --model-control-mode=${TRITON_INERENCE_SERVER_MODEL_CONTROL_MODE:-none} \
+      --model-control-mode=${TRITON_INERENCE_SERVER_MODEL_CONTROL_MODE:-explicit} \
       --model-config-name=${TRITON_INERENCE_SERVER_MODEL_CONFIG_NAME:-"config"} \
+      --load-model=embed_text \
+      --load-model=embed_image \
+      --load-model=multilingual_e5_large \
       --log-verbose=1 \
       --log-format=ISO8601 \
       --log-info=true \
@@ -20,6 +23,7 @@ x-base_inference_service: &base_inference_service
     - PYTHONDONTWRITEBYTECODE=1
     - LOG_LEVEL=DEBUG
     - MODEL_CACHE_DIR=/models
+    - HF_HUB_CACHE=/hub
   ports:
     - 8000:8000
     - 8001:8001
@@ -27,8 +31,9 @@ x-base_inference_service: &base_inference_service
   restart: "no"
   shm_size: "1gb"
   volumes:
-    - ./model-repository:/model-repository:z
-    - /home/$USER/.cache/huggingface/hub:/hub
+    - ${MODEL_REPOSITORY_SOURCE:-./model-repository}:${MODEL_REPOSITORY_TARGET:-/model-repository}
+    #- /home/$USER/.cache/huggingface/hub:/hub:z
+    - ./models:/hub:z
 
 services:
   inference_cpu:

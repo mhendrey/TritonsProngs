@@ -38,10 +38,11 @@ class TritonPythonModel:
             self.torch_dtype = torch.float32  # CPUs can't handle float16
 
         self.model = SiglipVisionModel.from_pretrained(
-            model_path,
+            #model_path,
+            "google/siglip-so400m-patch14-384",
             device_map="auto",
             torch_dtype=self.torch_dtype,
-            local_files_only=True,
+           # local_files_only=True,
             use_safetensors=True,
         )
         # If on a GPU, use torch.compile to improve throughput

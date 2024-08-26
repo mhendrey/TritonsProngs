@@ -2,6 +2,9 @@ version: '3'
 
 dontenv: ['task.env']
 
+vars:
+  COMPUTE_TYPE: '{{default "cpu" .COMPUTE_TYPE}}'
+
 tasks:
   clean:
     cmds:
@@ -10,8 +13,6 @@ tasks:
   triton-start:
     #TODO: define all the conda build envs and triton-import pulling in models 
     #deps: [build-execution-envs, triton-import]
-    vars: 
-      COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'
     cmds:
       - docker compose -f docker-compose.yml --profile {{.COMPUTE_TYPE}} up -d
     preconditions:
@@ -19,8 +20,6 @@ tasks:
       - test -f ./model-repository/embed_text/embed_text.tar.gz
 
   triton-stop:
-    vars:
-      COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'
     cmds:
       - docker compose -f docker-compose.yml --profile {{.COMPUTE_TYPE}} down 
 

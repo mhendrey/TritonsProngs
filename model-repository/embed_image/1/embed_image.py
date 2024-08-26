@@ -37,10 +37,11 @@ class TritonPythonModel:
         self.processors = {}
         for embed_model, model_path in embed_models.items():
             if embed_model == "siglip_vision":
-                self.processors[embed_model] = AutoProcessor.from_pretrained(
-                    model_path,
-                    local_files=True,
-                )
+                self.processors[embed_model] = AutoProcessor.from_pretrained("google/siglip-so400m-patch14-384")
+                # self.processors[embed_model] = AutoProcessor.from_pretrained(
+                #     model_path,
+                #     local_files=True,
+                # )
         ## Get additional parameters from the config.pbtxt file
         # bool_value doesn't appear supported forcing using string_value
         # Specify the default value for base64_encoded request parameter.
