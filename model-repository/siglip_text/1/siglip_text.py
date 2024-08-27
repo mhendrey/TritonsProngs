@@ -39,11 +39,10 @@ class TritonPythonModel:
 
         self.model = SiglipTextModel.from_pretrained(
             "google/siglip-so400m-patch14-384",
-            #model_path,
             device_map="auto",
             torch_dtype=self.torch_dtype,
-            #local_files_only=True,
-            use_safetensors=True,
+            local_files_only=True,
+            use_safetensors=True
         )
         # If on a GPU, use torch.compile to improve throughput
         if torch.cuda.is_available():

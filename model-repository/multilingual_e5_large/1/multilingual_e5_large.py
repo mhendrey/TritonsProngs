@@ -79,15 +79,9 @@ class TritonPythonModel:
             'intfloat/multilingual-e5-large',
             device_map="auto",
             torch_dtype=self.torch_dtype,
-            use_safetensors=True
+            use_safetensors=True, 
+            local_files_only=True
         )
-        # self.model = AutoModel.from_pretrained(
-        #     model_path,
-        #     device_map="auto",
-        #     torch_dtype=self.torch_dtype,
-        #     local_files_only=True,
-        #     use_safetensors=True,
-        # )
         # If on a GPU, use torch.compile to improve throughput
         if torch.cuda.is_available():
             self.model = torch.compile(self.model, dynamic=True)

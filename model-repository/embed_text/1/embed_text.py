@@ -34,17 +34,11 @@ class TritonPythonModel:
         self.processors = {}
         for embed_model, model_path in embed_models.items():
             if embed_model == "siglip_text":
-                self.processors[embed_model] = AutoProcessor.from_pretrained("google/siglip-so400m-patch14-384")
-                # self.processors[embed_model] = AutoProcessor.from_pretrained(
-                #     model_path,
-                #     local_files=True,
-                # )
+                self.processors[embed_model] = AutoProcessor.from_pretrained("google/siglip-so400m-patch14-384", local_files=True)
+               
             elif embed_model == "multilingual_e5_large":
-                self.processors[embed_model] = AutoTokenizer.from_pretrained("intfloat/multilingual-e5-large")
-                # self.processors[embed_model] = AutoTokenizer.from_pretrained(
-                #     model_path,
-                #     local_files=True,
-                # )
+                self.processors[embed_model] = AutoTokenizer.from_pretrained("intfloat/multilingual-e5-large", local_files=True)
+                
         ## Get additional parameters from the config.pbtxt file
         # Specify the default embedding model. Can be overriden in request parameter
         self.default_embed_model = model_config["parameters"]["default_embed_model"][
