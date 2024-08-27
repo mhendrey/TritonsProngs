@@ -1,6 +1,6 @@
 name: "seamlessm4t_text2text"
 backend: "python"
-max_batch_size: 50
+max_batch_size: 36
 default_model_filename: "seamlessm4t_text2text.py"
 
 input [

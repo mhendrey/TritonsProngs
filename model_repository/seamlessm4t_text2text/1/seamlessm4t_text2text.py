@@ -84,6 +84,19 @@ class TritonPythonModel:
                     b.decode("utf-8") for b in tgt_lang_tt.as_numpy().reshape(-1)
                 ]
 
+                if self.unsupported_lang(src_lang[0]):
+                    raise ValueError(
+                        f"src_lang {src_lang[0]} is not supported by SeamlessM4Tv2. Needs to "
+                        + f"be one of (you can leave off the '__' before and after)"
+                        + f"{self.processor.tokenizer.additional_special_tokens}"
+                    )
+                if self.unsupported_lang(tgt_lang[0]):
+                    raise ValueError(
+                        f"tgt_lang {tgt_lang[0]} is not supported by SeamlessM4Tv2. Needs to "
+                        + f"be one of (you can leave off the '__' before and after)"
+                        + f"{self.processor.tokenizer.additional_special_tokens}"
+                    )
+
                 batch_input_text.append(input_text)
                 batch_src_lang.append(src_lang)
                 batch_tgt_lang.append(tgt_lang)
@@ -115,7 +128,7 @@ class TritonPythonModel:
             for batch_id in valid_requests:
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(
-                        f"seamlessm4t_text2text.processor threw error tokenizing the batch"
+                        f"seamlessm4t_text2text.processor threw error tokenizing the batch: {exc}"
                     )
                 )
                 responses[batch_id] = response
@@ -135,7 +148,7 @@ class TritonPythonModel:
             for batch_id in valid_requests:
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(
-                        f"seamlessm4t_text2text.model.generate threw error on batch"
+                        f"seamlessm4t_text2text.model.generate threw error on batch: {exc}"
                     )
                 )
                 responses[batch_id] = response
@@ -150,7 +163,7 @@ class TritonPythonModel:
             for batch_id in valid_requests:
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(
-                        "seamlessm4t_text2text.processor.batch_decode threw on batch"
+                        "seamlessm4t_text2text.processor.batch_decode threw on batch: {exc}"
                     )
                 )
                 responses[batch_id] = response
@@ -170,3 +183,13 @@ class TritonPythonModel:
             responses[batch_id] = inference_response
 
         return responses
+
+    def unsupported_lang(self, lang_id):
+        if lang_id.startswith("__") and lang_id.endswith("__"):
+            pass
+        else:
+            lang_id = f"__{lang_id}__"
+        if lang_id in self.processor.tokenizer.additional_special_tokens:
+            return False
+        else:
+            return True

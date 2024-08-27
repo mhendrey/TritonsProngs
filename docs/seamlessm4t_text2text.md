@@ -202,44 +202,124 @@ Gives the following result on an RTX4090 GPU
 
 
 ## Validation
-To validate that the model is performing as expected, we calculate the performance on the
-[BUCC Bitext Mining dataset](https://huggingface.co/datasets/mteb/bucc-bitext-mining)
-and compare the performance against results published in the
-[Multilingual E5 Text Embeddings: A Technical Report](https://arxiv.org/abs/2402.05672).
+To validate this implementation of SeamlessM4Tv2LargeForTextToText, we use the
+same approach outlined in the
+[Seamless paper](https://ai.meta.com/research/publications/seamless-multilingual-expressive-and-streaming-speech-translation/).
+In particular we are looking to match the results in Table 7 that calculates the chrF
+score on the [Flores-200](https://huggingface.co/datasets/facebook/flores) dataset for
+the translated 95 different languages into English (X-eng). The table provides the
+average chrF2++ score over those 95 languages of 59.2.
 
-This dataset consists of 4 separate dataset with pairs of sentences in [zh-en, fr-en,
-de-en, and ru-en]. Table 5 in the paper reports that the Multilingual E5 large model
-achieved **98.6** on this benchmark. Unfortunately the paper doesn't give any details
-as to how they did the evaluation. In particular, the BUCC Biitext Mining dataset is
-supposed to consist of non-parallel sentences with only about 2-3% of the sentences
-having a corresponding translated sentence in the other language. However, the
-Huggingface test data has aligned sentences. This may make the task much too easy, but
-we will proceed in the absence of more information.
-
-For each language pair dataset, we query with one side and calculate the top-1 accuracy
-of finding the corresponding pair in the other language. We calculate a weighted
-average across the four sets of language pairs to get a single number. We use
-approximate nearest neighbors to perform the search of the 4 nearest neighbors based
-upon the cosine distance. We then perform two separate reranking methods before
-choosing the top nearest neighbor from this candidate list.  The first is just the
-cosine distance itself. The second is based upon a margin scoring approach that is
-referenced in the technical approach. This approach is outlined in
-[Margin-based Parallel Corpus Mining with Multilingual Sentence Embeddings](https://arxiv.org/abs/1811.01136).
-
-The code can be found in the [validate.py](../model_repository/multilingual_e5_large/validate.py)
-file.
+The validation is run over a total of 96 languages, but not exactly sure which language was
+added (guessing it was cmn_Hant, which is different from the others and seems added after
+the fact). The results for each language are listed below:
 
 ### Results
 
-| Language Pairs | Margin Accuracy | Cosine Accuracy | # of Records |
-| :------------: | :-------------: | :-------------: | :----------: |
-| zh-en | 99.53 | 99.26 | 1,899 |
-| fr-en | 99.00 | 98.62 | 9,086 |
-| de-en | 99.61 | 99.52 | 9,580 |
-| ru-en | 97.94 | 97.74 | 14,435|
-| **Mean** | **98.76** | **98.54** | |
+| Language | chrF2++ |
+| :------: | :-----: |
+| afr | 75.4 |
+| amh | 58.6 |
+| arb | 64.7 |
+| ary | 52.3 |
+| arz | 57.6 |
+| asm | 55.8 |
+| azj | 51.6 |
+| bel | 51.6 |
+| ben | 60.0 |
+| bos | 65.9 |
+| bul | 65.5 |
+| cat | 67.8 |
+| ceb | 65.9 |
+| ces | 63.5 |
+| ckb | 55.9 |
+| cmn | 55.5 |
+| cmn_Hant | 53.4 |
+| cym | 71.1 |
+| dan | 68.9 |
+| deu | 66.5 |
+| ell | 59.6 |
+| est | 60.5 |
+| eus | 57.8 |
+| fin | 58.0 |
+| fra | 67.6 |
+| fuv | 28.8 |
+| gaz | 47.0 |
+| gle | 61.0 |
+| glg | 65.8 |
+| guj | 64.7 |
+| heb | 65.3 |
+| hin | 62.2 |
+| hrv | 61.7 |
+| hun | 60.1 |
+| hye | 63.0 |
+| ibo | 53.1 |
+| ind | 65.6 |
+| isl | 56.3 |
+| ita | 60.0 |
+| jav | 61.4 |
+| jpn | 45.7 |
+| kan | 58.9 |
+| kat | 55.3 |
+| kaz | 58.2 |
+| khk | 52.5 |
+| khm | 55.4 |
+| kir | 50.9 |
+| kor | 53.2 |
+| lao | 59.0 |
+| lit | 56.7 |
+| lug | 43.6 |
+| luo | 47.4 |
+| lvs | 58.9 |
+| mai | 65.7 |
+| mal | 60.7 |
+| mar | 61.9 |
+| mkd | 65.8 |
+| mlt | 74.1 |
+| mni | 50.2 |
+| mya | 53.7 |
+| nld | 57.8 |
+| nno | 66.2 |
+| nob | 65.3 |
+| npi | 65.1 |
+| nya | 50.0 |
+| ory | 62.3 |
+| pan | 64.2 |
+| pbt | 56.9 |
+| pes | 61.3 |
+| pol | 55.5 |
+| por | 69.5 |
+| ron | 65.3 |
+| rus | 60.1 |
+| sat | 28.4 |
+| slk | 62.8 |
+| slv | 59.3 |
+| sna | 50.2 |
+| snd | 60.5 |
+| som | 50.8 |
+| spa | 57.7 |
+| srp | 66.6 |
+| swe | 69.0 |
+| swh | 62.4 |
+| tam | 57.3 |
+| tel | 62.5 |
+| tgk | 58.4 |
+| tgl | 65.0 |
+| tha | 54.5 |
+| tur | 60.4 |
+| ukr | 62.2 |
+| urd | 59.6 |
+| uzn | 57.2 |
+| vie | 58.9 |
+| yor | 41.6 |
+| yue | 49.2 |
+| zul | 60.6 |
+| **Mean** | **58.84**
 
-These match well with the reported 98.6 in the technical report.
+We find very close agreement with the 59.2 listed in the Seamless paper. Differences are likely
+attributed to slight difference in `generation()` arguments. For example, we use a `num_beams=3`
+to help limit VRAM needed.
 
 ### Code
-The code is available in [model_repository/multilingual_e5_large/validate.py](../model_repository/multilingual_e5_large/validate.py)
+The code can be found in the [validate.py](../model_repository/seamlessm4t_text2text/validate.py)
+file.
