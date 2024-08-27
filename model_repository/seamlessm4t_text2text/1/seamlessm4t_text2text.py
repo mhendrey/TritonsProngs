@@ -41,6 +41,10 @@ class TritonPythonModel:
             cache_dir="/hub",
             local_files_only=True,
         )
+        # Get list of supported language tokens. Of the form "__eng__"
+        self.supported_languages = set(
+            self.processor.tokenizer.additional_special_tokens
+        )
 
     def execute(self, requests: List) -> List:
         """
@@ -189,7 +193,7 @@ class TritonPythonModel:
             pass
         else:
             lang_id = f"__{lang_id}__"
-        if lang_id in self.processor.tokenizer.additional_special_tokens:
+        if lang_id in self.supported_languages:
             return False
         else:
             return True
