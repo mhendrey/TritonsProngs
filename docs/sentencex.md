@@ -36,7 +36,7 @@ inference_request = {
             "data": [text],
         },
         {
-            "name": "LANG_ID",
+            "name": "SRC_LANG",
             "shape": [1, 1],
             "datatype": "BYTES",
             "data": ["eng"]
@@ -103,7 +103,7 @@ with ThreadPoolExecutor(max_workers=60) as executor:
                     "data": [text],
                 },
                 {
-                    "name": "LANG_ID",
+                    "name": "SRC_LANG",
                     "shape": [1, 1],
                     "datatype": "BYTES",
                     "data": [lang_id],

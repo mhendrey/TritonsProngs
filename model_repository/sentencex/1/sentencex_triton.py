@@ -47,9 +47,9 @@ class TritonPythonModel:
         logger.log_info(f"sentencex received {batch_size} requests")
         responses = [None] * batch_size
         for batch_id, request in enumerate(requests):
-            # Get LANG_ID & INPUT_TEXT from the request as Triton Tensors
+            # Get SRC_LANG & INPUT_TEXT from the request as Triton Tensors
             try:
-                lang_id_tt = pb_utils.get_input_tensor_by_name(request, "LANG_ID")
+                lang_id_tt = pb_utils.get_input_tensor_by_name(request, "SRC_LANG")
                 input_text_tt = pb_utils.get_input_tensor_by_name(request, "INPUT_TEXT")
             except Exception as exc:
                 response = pb_utils.InferenceResponse(

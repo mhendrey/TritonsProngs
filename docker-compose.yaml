@@ -4,7 +4,18 @@ services:
   inferV1:
     image: nvcr.io/nvidia/tritonserver:24.05-pyt-python-py3
     user: triton-server
-    command: sh -c "tritonserver --model-repository=/models --model-control-mode explicit --load-model seamlessm4t_text2text --load-model fasttext_language_identification"
+    command:
+      - sh
+      - -c
+      - |
+        tritonserver \
+        --model-repository=/models \
+        --log-format=ISO8601 \
+        --model-control-mode explicit \
+        --load-model fasttext_language_identification \
+        --load-model sentencex \
+        --load-model seamlessm4t_text2text \
+        --load-model translate
     shm_size: "1gb"
     volumes:
       - ./model_repository:/models
