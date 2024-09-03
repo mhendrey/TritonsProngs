@@ -40,7 +40,7 @@ parameters: [
 instance_group [
     {
         kind: KIND_CPU,
-        count: 2
+        count: 3
     }
 ]
 version_policy: {latest: {num_versions: 1}}
