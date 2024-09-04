@@ -206,8 +206,10 @@ We use the same [Flores dataset](https://huggingface.co/datasets/facebook/flores
 used to validate the
 [SeamlessM4Tv2ForTextToText](seamlessm4t_text2text.md), but this time, we aggregate up
 15 sentences for a given language at one time and submit these to the translate
-deployment endpoint that is using SeamlessM4T under the hood. Similar to the
-SeamlessM4T, we calculate the chF2++ for each text (now 15 sentences) submitted.
+deployment endpoint that is using SeamlessM4T under the hood. Of course, the translate
+BLS deployment is then using the sentencex deployment to split up the text into
+sentences again. Similar to the SeamlessM4T, we calculate the chF2++ for each text (now
+15 sentences) submitted.
 
 The validation is run over a total of 96 languages, but not exactly sure which language was
 added (guessing it was cmn_Hant, which is different from the others and seems added after
