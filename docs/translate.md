@@ -247,7 +247,84 @@ the fact). The results for each language are listed below:
 | gaz | 56.0 | 47.0 |
 | gle | 65.5 | 61.0 |
 | glg | 70.8 | 65.8 |
+| guj | 68.6 | 64.7 |
+| heb | 68.7 | 65.3 |
+| hin | 67.6 | 62.2 |
+| hrv | 67.4 | 61.7 |
+| hun | 66.1 | 60.1 |
+| hye | 68.2 | 63.0 |
+| ibo | 60.3 | 53.1 |
+| ind | 68.6 | 65.6 |
+| isl | 61.6 | 56.3 |
+| ita | 66.3 | 60.0 |
+| jav | 66.8 | 61.4 |
+| jpn | 54.1 | 45.7 |
+| kan | 64.7 | 58.9 |
+| kat | 62.3 | 55.3 |
+| kaz | 64.4 | 58.2 |
+| khk | 60.4 | 52.5 |
+| *khm* | 10.0 | 55.4 |
+| kir | 58.8 | 50.9 |
+| kor | 59.9 | 53.2 |
+| lao | 64.9 | 59.0 |
+| lit | 63.5 | 56.7 |
+| lug | 52.7 | 43.6 |
+| luo | 55.6 | 47.4 |
+| lvs | 63.9 | 58.9 |
+| mai | 69.7 | 65.7 |
+| mal | 65.7 | 60.7 |
+| mar | 66.9 | 61.9 |
+| mkd | 70.9 | 65.8 |
+| mlt | 75.4 | 74.1 |
+| mni | 58.6 | 50.2 |
+| mya | 58.1 | 53.7 |
+| nld | 64.3 | 57.8 |
+| nno | 70.9 | 66.2 |
+| nob | 70.5 | 65.3 |
+| npi | 68.2 | 65.1 |
+| nya | 58.4 | 50.0 |
+| ory | 66.7 | 62.3 |
+| pan | 56.4 | 64.2 |
+| pbt | 61.6 | 56.9 |
+| pes | 66.8 | 61.3 |
+| pol | 63.1 | 55.5 |
+| por | 74.0 | 69.5 |
+| ron | 70.7 | 65.3 |
+| rus | 66.6 | 60.1 |
+| sat | 41.0 | 28.4 |
+| slk | 68.5 | 62.8 |
+| slv | 65.2 | 59.3 |
+| sna | 58.2 | 50.2 |
+| snd | 65.1 | 60.5 |
+| som | 57.9 | 50.8 |
+| spa | 64.8 | 57.7 |
+| srp | 70.9 | 66.6 |
+| swe | 72.6 | 69.0 |
+| swh | 66.5 | 62.4 |
+| tam | 62.9 | 57.3 |
+| tel | 67.0 | 62.5 |
+| tgk | 63.7 | 58.4 |
+| tgl | 69.7 | 65.0 |
+| *tha* | 15.6 | 54.5 |
+| tur | 66.8 | 60.4 |
+| ukr | 67.9 | 62.2 |
+| urd | 63.9 | 59.6 |
+| uzn | 64.0 | 57.2 |
+| vie | 64.5 | 58.9 |
+| yor | 51.0 | 41.6 |
+| yue | 57.6 | 49.2 |
+| zul | 66.5 | 60.6 |
+| **Mean** | **63.47** | **58.84** |
 
+Comparing against the single sentence translation, we find that we generally get
+slightly better results with an average chrF2++ score of 63.5 compared to the
+sentence level comparision of 58.8. The Seamless paper quotes an average of 59.2.
+It's worth noting that a few of the results were significantly worse (tha and khm).
+These are a result of the
+[sentencex](./sentencex.md) failing to split the text into sentences due to these
+languages lacking any punctuation. As a result, though Seamless has a context window
+large enough to process all the text it generates a stop token after the first
+sentence or two causing the scores to crater.
 
 ### Code
 The code can be found in the [validate.py](../model_repository/translate/validate.py)
