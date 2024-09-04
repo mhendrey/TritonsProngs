@@ -160,44 +160,93 @@ sdk-container:/workspace perf_analyzer \
 Gives the following result on an RTX4090 GPU
 
 * Request concurrency: 3
-  * Pass [1] throughput: 1.33328 infer/sec. Avg latency: 2149660 usec (std 519525 usec). 
-  * Pass [2] throughput: 1.37495 infer/sec. Avg latency: 2126508 usec (std 426229 usec). 
-  * Pass [3] throughput: 1.45827 infer/sec. Avg latency: 2144916 usec (std 435295 usec). 
+  * Pass [1] throughput: 1.4166 infer/sec. Avg latency: 2063479 usec (std 445241 usec). 
+  * Pass [2] throughput: 1.41662 infer/sec. Avg latency: 2064923 usec (std 411890 usec). 
+  * Pass [3] throughput: 1.37496 infer/sec. Avg latency: 2138226 usec (std 537251 usec). 
   * Client: 
-    * Request count: 100
-    * Throughput: 1.38884 infer/sec
+    * Request count: 101
+    * Throughput: 1.40272 infer/sec
     * Avg client overhead: 0.00%
-    * Avg latency: 2140359 usec (standard deviation 148598 usec)
-    * p50 latency: 1995987 usec
-    * p90 latency: 2859377 usec
-    * p95 latency: 2875004 usec
-    * p99 latency: 3307600 usec
-    * Avg HTTP time: 2140350 usec (send 48 usec + response wait 2140302 usec + receive 0 usec)
+    * Avg latency: 2088387 usec (standard deviation 174699 usec)
+    * p50 latency: 1965212 usec
+    * p90 latency: 2791654 usec
+    * p95 latency: 2804253 usec
+    * p99 latency: 3171326 usec
+    * Avg HTTP time: 2088377 usec (send 52 usec + response wait 2088325 usec + receive 0 usec)
   * Server: 
-    * Inference count: 100
-    * Execution count: 99
-    * Successful request count: 100
-    * Avg request latency: 2140152 usec (overhead 194297 usec + queue 967685 usec + compute 978170 usec)
+    * Inference count: 101
+    * Execution count: 100
+    * Successful request count: 101
+    * Avg request latency: 2088165 usec (overhead 223773 usec + queue 916062 usec + compute 948330 usec)
 
   * Composing models: 
   * fasttext_language_identification, version: 1
-      * Inference count: 103
+      * Inference count: 104
       * Execution count: 100
-      * Successful request count: 103
-      * Avg request latency: 2162 usec (overhead 3 usec + queue 467 usec + compute input 15 usec + compute infer 1661 usec + compute output 15 usec)
+      * Successful request count: 104
+      * Avg request latency: 1644 usec (overhead 2 usec + queue 339 usec + compute input 13 usec + compute infer 1277 usec + compute output 11 usec)
 
   * seamlessm4t_text2text, version: 1
-      * Inference count: 2100
-      * Execution count: 77
-      * Successful request count: 2100
-      * Avg request latency: 1940889 usec (overhead 28 usec + queue 966532 usec + compute input 195 usec + compute infer 973893 usec + compute output 241 usec)
+      * Inference count: 2149
+      * Execution count: 81
+      * Successful request count: 2149
+      * Avg request latency: 1859923 usec (overhead 28 usec + queue 915307 usec + compute input 188 usec + compute infer 944142 usec + compute output 257 usec)
 
   * sentencex, version: 1
-      * Inference count: 103
-      * Execution count: 102
-      * Successful request count: 103
-      * Avg request latency: 2837 usec (overhead 2 usec + queue 686 usec + compute input 12 usec + compute infer 2127 usec + compute output 9 usec)
+      * Inference count: 104
+      * Execution count: 98
+      * Successful request count: 104
+      * Avg request latency: 2858 usec (overhead 3 usec + queue 416 usec + compute input 14 usec + compute infer 2413 usec + compute output 10 usec)
 
 * Inferences/Second vs. Client Average Batch Latency
-* Concurrency: 3, throughput: 1.38884 infer/sec, latency 2140359 usec
+* Concurrency: 3, throughput: 1.40272 infer/sec, latency 2088387 usec
 
+### Validation
+We use the same [Flores dataset](https://huggingface.co/datasets/facebook/flores)
+used to validate the
+[SeamlessM4Tv2ForTextToText](seamlessm4t_text2text.md), but this time, we aggregate up
+15 sentences for a given language at one time and submit these to the translate
+deployment endpoint that is using SeamlessM4T under the hood. Similar to the
+SeamlessM4T, we calculate the chF2++ for each text (now 15 sentences) submitted.
+
+The validation is run over a total of 96 languages, but not exactly sure which language was
+added (guessing it was cmn_Hant, which is different from the others and seems added after
+the fact). The results for each language are listed below:
+
+### Results
+| Language | chrF2++ | chrF2++ (Seamless) |
+| :------: | :-----: | :----------------: |
+| afr | 67.7 | 75.4 |
+| amh | 64.0 | 58.6 |
+| arb | 68.6 | 64.7 |
+| ary | 59.9 | 52.3 |
+| arz | 64.2 | 57.6 |
+| asm | 61.2 | 55.8 | 
+| azj | 60.0 | 51.6 |
+| bel | 59.9 | 51.6 |
+| ben | 65.1 | 60.0 |
+| bos | 70.7 | 65.9 |
+| bul | 70.4 | 65.5 |
+| cat | 72.6 | 67.8 |
+| ceb | 69.6 | 65.9 |
+| ces | 68.8 | 63.5 |
+| ckb | 61.5 | 55.9 |
+| cmn | 62.4 | 55.5 |
+| cmn_Hant | 60.6 | 53.4 |
+| cym | 74.7 | 71.1 |
+| dan | 72.5 | 68.9 |
+| deu | 71.7 | 66.5 |
+| ell | 66.3 | 59.6 |
+| est | 65.6 | 60.5 |
+| eus | 64.5 | 57.8 |
+| fin | 63.9 | 58.0 |
+| fra | 72.2 | 67.6 |
+| fuv | 41.9 | 28.8 |
+| gaz | 56.0 | 47.0 |
+| gle | 65.5 | 61.0 |
+| glg | 70.8 | 65.8 |
+
+
+### Code
+The code can be found in the [validate.py](../model_repository/translate/validate.py)
+file.

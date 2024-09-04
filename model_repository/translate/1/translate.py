@@ -14,6 +14,7 @@ class TritonPythonModel:
     before passing on to translation model."""
 
     def initialize(self, args):
+        self.logger = pb_utils.Logger
         self.model_config = model_config = json.loads(args["model_config"])
 
         # Get INPUT_TEXT configuration
@@ -120,7 +121,7 @@ class TritonPythonModel:
     def submit_inference_request(
         self, model_name: str, requested_output_names: list, inputs_tt: list
     ):
-        logger = pb_utils.Logger
+        # logger = pb_utils.Logger
         try:
             infer_request = pb_utils.InferenceRequest(
                 model_name=model_name,
@@ -128,7 +129,7 @@ class TritonPythonModel:
                 inputs=inputs_tt,
             )
         except Exception as exc:
-            logger.log_error(f"{exc}")
+            self.logger.log_error(f"{exc}")
         return infer_request
 
     def get_inference_response(
@@ -138,14 +139,10 @@ class TritonPythonModel:
         requested_output_names: list,
         error_msg: str = "",
     ) -> list:
-        logger = pb_utils.Logger
-        if infer_response.has_error() and self.responses[batch_id] is None:
-            error_msg += f" {infer_response.error().message()}"
-            response = pb_utils.InferenceResponse(error=pb_utils.TritonError(error_msg))
-            if self.responses[batch_id] is None:
-                self.responses[batch_id] = response
-            self.is_ok[batch_id] = False
-            logger.log_error(f"{batch_id=:} {requested_output_names=:} {error_msg}")
+        # logger = pb_utils.Logger
+        if infer_response.has_error():
+            error_msg += f" {batch_id=:} threw {infer_response.has_error().message()}"
+            self.error_response(batch_id, error_msg)
             raise RuntimeError()
         else:
             outputs_tt = []
@@ -155,13 +152,16 @@ class TritonPythonModel:
                         infer_response, output_name
                     )
                 except Exception as exc:
-                    logger.log_error(f"{output_name=:} threw {exc}")
+                    self.logger.log_error(f"{output_name=:} threw {exc}")
                 outputs_tt.append(output_tt)
             return outputs_tt
 
     def seamless_fix_chinese(self, src_lang_tt, src_script_tt):
         src_lang = src_lang_tt.as_numpy().reshape(-1)[0].decode("utf-8")
-        src_script = src_script_tt.as_numpy().reshape(-1)[0].decode("utf-8")
+        if src_script_tt is not None:
+            src_script = src_script_tt.as_numpy().reshape(-1)[0].decode("utf-8")
+        else:
+            src_script = ""
         if src_lang == "zho":
             if src_script == "Hant":
                 src_lang = "cmn_Hant"
@@ -172,6 +172,13 @@ class TritonPythonModel:
             )
         else:
             return src_lang_tt
+
+    def error_response(self, batch_id: int, error_msg: str):
+        response = pb_utils.InferenceResponse(error=pb_utils.TritonError(error_msg))
+        if self.responses[batch_id] is None:
+            self.responses[batch_id] = response
+        self.is_ok[batch_id] = False
+        self.logger.log_error(error_msg)
 
     async def execute(self, requests: List) -> List:
         """
@@ -236,8 +243,10 @@ class TritonPythonModel:
             src_lang = request_data["src_lang"]
             if src_lang:
                 src_lang_doc_tts[batch_id] = pb_utils.Tensor(
-                    "SRC_LANG", np.array([src_lang], np.object_).reshape(-1, 1)
+                    "SRC_LANG",
+                    np.array([src_lang.encode("utf-8")], np.object_).reshape(-1, 1),
                 )
+                src_script_doc_tts[batch_id] = None
                 prob_docs[batch_id] = 1.0
             else:
                 doc_lang_batch_ids.append(batch_id)
@@ -285,17 +294,17 @@ class TritonPythonModel:
                             "SRC_SCRIPT",
                             "PROBABILITY",
                         ],
-                        error_msg=f"{requests_data[batch_id]['language_id_model']} threw",
+                        error_msg=f"{requests_data[batch_id]['language_id_model']}",
                     )
                 )
             except Exception as exc:
-                logger.log_error(f"get_infer_response threw {exc}")
-            try:
+                self.error_response(
+                    batch_id, f"Gathering doc_lang_responses threw {exc}"
+                )
+            else:
                 src_lang_doc_tts[batch_id] = src_lang_doc_tt
                 src_script_doc_tts[batch_id] = src_script_doc_tt
                 prob_docs[batch_id] = prob_doc_tt.as_numpy().reshape(-1)[0]
-            except Exception as exc:
-                logger.log_info(f"Failed after {exc}")
 
         # Submit these for sentence segmentation now too
         for batch_id in doc_lang_batch_ids:
@@ -325,7 +334,7 @@ class TritonPythonModel:
                     sentences_response,
                     batch_id,
                     requested_output_names=["SENTENCES"],
-                    error_msg=f"{requests_data[batch_id]['sentence_segmenter']} threw",
+                    error_msg=f"{requests_data[batch_id]['sentence_segmenter']}",
                 )
                 for chunk_id, sentence in enumerate(
                     sentences_tt.as_numpy().reshape(-1)
@@ -337,7 +346,9 @@ class TritonPythonModel:
                         )
                     }
             except Exception as exc:
-                logger.log_error(f"sentence_segmenter threw {exc}")
+                self.error_response(
+                    f"Gathering sentence_segmenter_responses threw {exc}"
+                )
         # For those that have prob_doc < langauge_id_threshold, we need to do language
         # identification for each of the sentences. Let's submit those now
         sentence_lang_id_await = []
@@ -397,7 +408,7 @@ class TritonPythonModel:
                     batch_id,
                     requested_output_names=["SRC_LANG", "SRC_SCRIPT"],
                     error_msg=f"{requests_data[batch_id]['language_id_model']} "
-                    + "on sentences threw",
+                    + "on sentences",
                 )
                 sentence_tt = translate_inputs[batch_id][chunk_id]["input_text_tt"]
                 if (
@@ -420,8 +431,9 @@ class TritonPythonModel:
                     ).async_exec()
                 )
             except Exception as exc:
-                logger.log_error(
-                    f"Get inference from sentence level lang_id threw {exc}"
+                self.error_response(
+                    batch_id,
+                    f"Gathering sentence-level lang_id for translation threw {exc}",
                 )
 
         # Gather the translation results
@@ -443,7 +455,9 @@ class TritonPythonModel:
                 )
                 results[batch_id][chunk_id] = translated_chunk
             except Exception as exc:
-                logger.log_error(f"Translation threw {exc}")
+                self.error_response(
+                    batch_id, f"Gathering translated results threw {exc}"
+                )
 
         for batch_id in sorted(results):
             if self.is_ok[batch_id]:

@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datasets import load_dataset
-import json
+import numpy as np
 import requests
 from sacrebleu.metrics import CHRF
 
@@ -15,6 +15,7 @@ def get_translations(
             zip(texts, src_langs, tgt_langs)
         ):
             inference_request = {
+                "parameters": {"src_lang": src_lang, "tgt_lang": tgt_lang},
                 "inputs": [
                     {
                         "name": "INPUT_TEXT",
@@ -22,23 +23,11 @@ def get_translations(
                         "datatype": "BYTES",
                         "data": [text],
                     },
-                    {
-                        "name": "SRC_LANG",
-                        "shape": [1, 1],
-                        "datatype": "BYTES",
-                        "data": [src_lang],
-                    },
-                    {
-                        "name": "TGT_LANG",
-                        "shape": [1, 1],
-                        "datatype": "BYTES",
-                        "data": [tgt_lang],
-                    },
-                ]
+                ],
             }
             future = executor.submit(
                 requests.post,
-                url="http://localhost:8000/v2/models/seamlessm4t_text2text/infer",
+                url="http://localhost:8000/v2/models/translate/infer",
                 json=inference_request,
             )
             futures[future] = i
@@ -92,11 +81,15 @@ def test_pair(src, tgt):
     tgt_texts = []
     translations = []
     for batch in flores.iter(batch_size=60):
-        n_batch = len(batch["id"])
-        src_langs = [src] * n_batch
-        tgt_langs = [tgt] * n_batch
-        texts = batch[src_sentence]
-        tgt_texts += batch[tgt_sentence]
+        texts = []
+        src_langs = []
+        tgt_langs = []
+        for text_chunk in np.array_split(batch[src_sentence], 3):
+            texts.append(" ".join(text_chunk))
+            src_langs.append(src)
+            tgt_langs.append(tgt)
+        for text_chunk in np.array_split(batch[tgt_sentence], 3):
+            tgt_texts.append(" ".join(text_chunk))
         for t in get_translations(texts, src_langs, tgt_langs):
             translations.append(t)
 
