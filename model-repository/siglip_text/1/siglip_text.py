@@ -27,7 +27,6 @@ class TritonPythonModel:
         self.embedding_dtype = pb_utils.triton_string_to_numpy(
             embedding_config["data_type"]
         )
-        model_path = model_config["parameters"]["model_path"]["string_value"]
 
         # Use the GPU if available, otherwise use the CPU
         if torch.cuda.is_available():

@@ -70,8 +70,6 @@ class TritonPythonModel:
         self.embedding_dtype = pb_utils.triton_string_to_numpy(
             embedding_config["data_type"]
         )
-        model_path = model_config["parameters"]["model_path"]["string_value"]
-
         self.device, self.torch_dtype = TritonPythonModel.get_device_dtype()
 
         self.pad_value = 1

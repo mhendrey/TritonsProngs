@@ -22,12 +22,6 @@ parameters: [
     {
         key: "EXECUTION_ENV_PATH",
         value: {string_value: "$$TRITON_MODEL_DIRECTORY/siglip_text.tar.gz"},
-    },
-    {
-        key: "model_path",
-        value: {
-            string_value: "/hub/models--google--siglip-so400m-patch14-384/snapshots/7067f6db2baa594bab7c6d965fe488c7ac62f1c8/"
-            },
     }
 ]
 instance_group [

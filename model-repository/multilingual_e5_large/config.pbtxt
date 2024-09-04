@@ -22,12 +22,6 @@ parameters: [
     {
         key: "EXECUTION_ENV_PATH",
         value: {string_value: "$$TRITON_MODEL_DIRECTORY/multilingual_e5_large.tar.gz"},
-    },
-    {
-        key: "model_path",
-        value: {
-            string_value: "/hub/models--intfloat--multilingual-e5-large/snapshots/ab10c1a7f42e74530fe7ae5be82e6d4f11a719eb/"
-            },
     }
 ]
 instance_group [
