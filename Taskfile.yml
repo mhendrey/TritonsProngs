@@ -1,0 +1,80 @@
+version: '3'
+
+dontenv: ['task.env']
+
+vars:
+  COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'
+
+tasks:
+  clean:
+    cmds:
+      - docker system prune -f --volumes
+
+  triton-start:
+    #TODO: define all the conda build envs and triton-import pulling in models 
+    #deps: [build-execution-env-all, model-import]
+    cmds:
+      - docker compose -f docker-compose.yml --profile {{.COMPUTE_TYPE}} up -d
+    preconditions:
+      - test -f ./model-repository/embed_image/embed_image.tar.gz
+      - test -f ./model-repository/embed_text/embed_text.tar.gz
+      - test -f ./model-repository/multilingual_e5_large/multilingual_e5_large.tar.gz 
+      - test -f ./model-repository/siglip_text/siglip_text.tar.gz
+      - test -f ./model-repository/siglip_vision/siglip_vision.tar.gz
+
+  triton-stop:
+    cmds:
+      - docker compose -f docker-compose.yml --profile {{.COMPUTE_TYPE}} down 
+
+  triton-infer:
+    desc: "This task is not yet implemented"
+    cmds:
+      - println "Task 'my-task' is not yet implemented." 
+
+  model-import:
+    desc: "Task to import model files from upstream model store"
+    cmds:
+      - mkdir -p models
+      - huggingface-cli download google/siglip-so400m-patch14-384 --cache-dir models
+      - huggingface-cli download intfloat/multilingual-e5-large --cache-dir models  
+
+  build-execution-env-all:
+    desc: "Taks to build all execution environments"
+    deps: [build-embed_image-env, build-embed_text-env, build-multilingual_e5_large-env, build-siglip_text-env, build-siglip_vision-env]      
+
+  build-*-env:
+    vars:
+      MODEL: '{{index .MATCH 0}}'
+    label: 'build-{{.MODEL}}-env'  
+    cmds:
+      - task: build-execution-env-internal
+        vars:     
+          CONDA_ENV_NAME: '{{.MODEL}}'
+          CONDA_ENV_FILE_PATH: '/model-repository/{{.MODEL}}/environment.yml'
+          CONDA_PACKED_OUTPUT_FILE_PATH: '/model-repository/{{.MODEL}}/{{.MODEL}}.tar.gz'
+    preconditions:
+      - test -d "./model-repository/{{.MODEL}}"     
+
+  build-execution-env-internal:
+    internal: true
+    cmds:
+      - >
+        rm -f .{{.CONDA_PACKED_OUTPUT_FILE_PATH}} && 
+        printf "Building conda pack file {{.CONDA_PACKED_OUTPUT_FILE_PATH}} for {{.CONDA_ENV_NAME}} using {{.CONDA_ENV_FILE_PATH}}\n\n" && 
+        docker compose -f docker-compose.yml run 
+        --rm 
+        --no-deps 
+        --interactive=false 
+        --env CONDA_ENV_NAME={{.CONDA_ENV_NAME}} 
+        --env CONDA_ENV_FILE_PATH={{.CONDA_ENV_FILE_PATH}} 
+        --env CONDA_PACKED_OUTPUT_FILE_PATH={{.CONDA_PACKED_OUTPUT_FILE_PATH}} 
+        conda-pack-builder
+    sources:
+      - '.{{.CONDA_ENV_FILE_PATH}}'
+    generates:
+      - '.{{.CONDA_PACKED_OUTPUT_FILE_PATH}}'
+
+  build-conda-packer:
+    cmds:
+      - docker compose -f docker-compose.yml --profile build build
+      

@@ -1,0 +1,17 @@
+name: triton-prongs-development-env
+channels:
+  - defaults
+  - conda-forge
+ dependencies:
+   - python=3.10
+   - ipython
+   - jupyter
+   - tritonclient
+   - tritonclient-http
+   - tritonclient-grpc
+   - isort
+   - black
+   - autoflake
+   - pip
+   #- pip:
+     # pip deps
