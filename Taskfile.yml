@@ -3,7 +3,7 @@ version: '3'
 dontenv: ['task.env']
 
 vars:
-  COMPUTE_TYPE: '{{default "cpu" .COMPUTE_TYPE}}'
+  COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'
 
 tasks:
   clean:
