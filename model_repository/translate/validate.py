@@ -1,6 +1,8 @@
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datasets import load_dataset
 import numpy as np
+from pprint import pprint
 import requests
 from sacrebleu.metrics import CHRF
 
@@ -9,13 +11,14 @@ def get_translations(
     texts: list[str], src_langs: list[str], tgt_langs: list[str], max_workers: int = 50
 ) -> list[str]:
     results = [None] * len(texts)
+    errors = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {}
         for i, (text, src_lang, tgt_lang) in enumerate(
             zip(texts, src_langs, tgt_langs)
         ):
             inference_request = {
-                "parameters": {"src_lang": src_lang, "tgt_lang": tgt_lang},
+                "parameters": {"tgt_lang": tgt_lang},
                 "inputs": [
                     {
                         "name": "INPUT_TEXT",
@@ -25,6 +28,8 @@ def get_translations(
                     },
                 ],
             }
+            if src_lang:
+                inference_request["parameters"]["src_lang"] = src_lang
             future = executor.submit(
                 requests.post,
                 url="http://localhost:8000/v2/models/translate/infer",
@@ -42,12 +47,14 @@ def get_translations(
             try:
                 translated_text = response_json["outputs"][0]["data"][0]
             except:
-                raise ValueError(f"{texts[i]} threw {response_json}")
-            results[i] = translated_text
-    return results
+                errors.append(f"{texts[i]} threw {response_json}")
+                # raise ValueError(f"{texts[i]} threw {response_json}")
+            else:
+                results[i] = translated_text
+    return results, errors
 
 
-def test_pair(src, tgt):
+def test_pair(src, tgt, use_src: bool = True):
     flores = load_dataset("facebook/flores", "all", split="devtest")
     chrf = CHRF(word_order=2, eps_smoothing=True)
     if src == "cmn_Hant":
@@ -80,20 +87,28 @@ def test_pair(src, tgt):
 
     tgt_texts = []
     translations = []
+    errors = defaultdict(list)
     for batch in flores.iter(batch_size=60):
         texts = []
         src_langs = []
         tgt_langs = []
         for text_chunk in np.array_split(batch[src_sentence], 3):
             texts.append(" ".join(text_chunk))
-            src_langs.append(src)
+            if use_src:
+                src_langs.append(src)
+            else:
+                src_langs.append(None)
             tgt_langs.append(tgt)
         for text_chunk in np.array_split(batch[tgt_sentence], 3):
             tgt_texts.append(" ".join(text_chunk))
-        for t in get_translations(texts, src_langs, tgt_langs):
-            translations.append(t)
+        results, errs = get_translations(texts, src_langs, tgt_langs)
+        if errs:
+            errors[src] += errs
+        for t in results:
+            if t is not None:
+                translations.append(t)
 
-    return chrf.corpus_score(translations, [tgt_texts]).score
+    return chrf.corpus_score(translations, [tgt_texts]).score, errors
 
 
 def main():
@@ -202,23 +217,32 @@ def main():
 
     errors = []
     chrf2 = []
-    print(f"| Language | chrF2++ |")
-    print(f"| :------: | :-----: |")
+    errors_no_src = []
+    chrf2_no_src = []
+    print(f"| Language | chrF2++ w/ src_lang | chrF2++ no src_lang |")
+    print(f"| :------: | :-----------------: | :-----------------: |")
     for src in language_codes:
-        try:
-            triton_score = test_pair(src, "eng")
-            chrf2.append(triton_score)
-        except Exception as exc:
-            errors.append((src, exc))
-            continue
-        print(f"| {src} | {triton_score:.1f} |")
+        print(f"| {src} |", end="", flush=True)
+        triton_score, errors_dict = test_pair(src, "eng")
+        print(f" {triton_score:.1f} |", end="", flush=True)
+        chrf2.append(triton_score)
+        errors.append(errors_dict)
+
+        triton_score, errors_dict = test_pair(src, "eng", use_src=False)
+        print(f" {triton_score:.1f} |", flush=True)
+        chrf2_no_src.append(triton_score)
+        errors_no_src.append(errors_dict)
 
     mean_score = sum(chrf2) / len(chrf2)
-    print(f"| **Mean** | **{mean_score:.2f}**")
-    print(f"\n\nMean = {mean_score:.2f}")
+    mean_no_score = sum(chrf2_no_src) / len(chrf2_no_src)
+    print(f"| **Mean** | **{mean_score:.2f}** | **{mean_no_score:.2f}** |")
 
-    for src, exc in errors:
-        print(f"{src} threw {exc}")
+    print(f"Errors when using src_lang")
+    for errors_dict in errors:
+        pprint(errors_dict)
+    print("\n\nErrors when no src_lang")
+    for errors_dict in errors_no_src:
+        pprint(errors_dict)
 
 
 if __name__ == "__main__":

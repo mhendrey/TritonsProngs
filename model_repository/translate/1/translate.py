@@ -141,7 +141,7 @@ class TritonPythonModel:
     ) -> list:
         # logger = pb_utils.Logger
         if infer_response.has_error():
-            error_msg += f" {batch_id=:} threw {infer_response.has_error().message()}"
+            error_msg += f" {batch_id=:} threw {infer_response.error().message()}"
             self.error_response(batch_id, error_msg)
             raise RuntimeError()
         else:

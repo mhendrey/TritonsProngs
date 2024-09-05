@@ -205,15 +205,18 @@ Gives the following result on an RTX4090 GPU
 We use the same [Flores dataset](https://huggingface.co/datasets/facebook/flores)
 used to validate the
 [SeamlessM4Tv2ForTextToText](seamlessm4t_text2text.md), but this time, we aggregate up
-15 sentences for a given language at one time and submit these to the translate
-deployment endpoint that is using SeamlessM4T under the hood. Of course, the translate
-BLS deployment is then using the sentencex deployment to split up the text into
-sentences again. Similar to the SeamlessM4T, we calculate the chF2++ for each text (now
-15 sentences) submitted.
+15 sentences for a given language at one time and submit these to the `translate`
+deployment endpoint that is using SeamlessM4T under the hood. Of course, the
+`translate` deployment is using the `sentencex` deployment to split the text up into
+sentences again. However, the chF2++ metric uses the block of 15 sentences for
+comparison. For each language, we perform translation first by providing the
+`src_lang` as a request parameter. This causes `translate` to skip language detection.
+We then repeat doing the translation, but this not providing the `src_lang`. This
+causes `translate` to use the language detection deployment before performing sentence
+segmentation followed by translation.
 
-The validation is run over a total of 96 languages, but not exactly sure which language was
-added (guessing it was cmn_Hant, which is different from the others and seems added after
-the fact). The results for each language are listed below:
+The validation is run over a total of 96 languages. The results for each language are
+listed below:
 
 ### Results
 | Language | chrF2++ | chrF2++ (Seamless) |
