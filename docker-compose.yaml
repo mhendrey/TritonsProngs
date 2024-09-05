@@ -18,7 +18,7 @@ services:
         --load-model translate
     shm_size: "1gb"
     volumes:
-      - ./model_repository:/models
+      - ./model-repository:/models
       - /home/$USER/.cache/huggingface/hub:/hub
     ports:
       - 8000:8000

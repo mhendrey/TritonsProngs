@@ -8,7 +8,11 @@ from sacrebleu.metrics import CHRF
 
 
 def get_translations(
-    texts: list[str], src_langs: list[str], tgt_langs: list[str], max_workers: int = 50
+    texts: list[str],
+    src_langs: list[str],
+    tgt_langs: list[str],
+    language_id_threshold: float = None,
+    max_workers: int = 50,
 ) -> list[str]:
     results = [None] * len(texts)
     errors = []
@@ -30,6 +34,10 @@ def get_translations(
             }
             if src_lang:
                 inference_request["parameters"]["src_lang"] = src_lang
+            if language_id_threshold:
+                inference_request["parameters"][
+                    "language_id_threshold"
+                ] = language_id_threshold
             future = executor.submit(
                 requests.post,
                 url="http://localhost:8000/v2/models/translate/infer",
@@ -54,7 +62,7 @@ def get_translations(
     return results, errors
 
 
-def test_pair(src, tgt, use_src: bool = True):
+def test_pair(src, tgt, use_src: bool = True, language_id_threshold: float = None):
     flores = load_dataset("facebook/flores", "all", split="devtest")
     chrf = CHRF(word_order=2, eps_smoothing=True)
     if src == "cmn_Hant":
@@ -101,7 +109,9 @@ def test_pair(src, tgt, use_src: bool = True):
             tgt_langs.append(tgt)
         for text_chunk in np.array_split(batch[tgt_sentence], 3):
             tgt_texts.append(" ".join(text_chunk))
-        results, errs = get_translations(texts, src_langs, tgt_langs)
+        results, errs = get_translations(
+            texts, src_langs, tgt_langs, language_id_threshold
+        )
         if errs:
             errors[src] += errs
         for t in results:
@@ -223,15 +233,23 @@ def main():
     print(f"| :------: | :-----------------: | :-----------------: |")
     for src in language_codes:
         print(f"| {src} |", end="", flush=True)
-        triton_score, errors_dict = test_pair(src, "eng")
-        print(f" {triton_score:.1f} |", end="", flush=True)
-        chrf2.append(triton_score)
-        errors.append(errors_dict)
+        try:
+            triton_score, errors_dict = test_pair(src, "eng")
+        except Exception as exc:
+            errors.append(f"{src} threw {exc}\n")
+        else:
+            print(f" {triton_score:.1f} |", end="", flush=True)
+            chrf2.append(triton_score)
+            errors.append(errors_dict)
 
-        triton_score, errors_dict = test_pair(src, "eng", use_src=False)
-        print(f" {triton_score:.1f} |", flush=True)
-        chrf2_no_src.append(triton_score)
-        errors_no_src.append(errors_dict)
+        try:
+            triton_score, errors_dict = test_pair(src, "eng", use_src=False)
+        except Exception as exc:
+            errors_no_src.append(f"{src} threw {exc}\n")
+        else:
+            print(f" {triton_score:.1f} |", flush=True)
+            chrf2_no_src.append(triton_score)
+            errors_no_src.append(errors_dict)
 
     mean_score = sum(chrf2) / len(chrf2)
     mean_no_score = sum(chrf2_no_src) / len(chrf2_no_src)

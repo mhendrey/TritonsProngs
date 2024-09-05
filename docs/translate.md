@@ -40,7 +40,7 @@ addition, this allows for controlling the GPU RAM consumed by the server.
   triggers using language identification model.
 * `tgt_lang`: ISO 639-3 Language Code for translated text. Default is `eng`
 * `language_id_threshold`: Run language id for each sentence if document level language
-  probability for top prediction is below this threshold. Default is 0.95.
+  probability for top prediction is below this threshold. Default is 0.30.
 
 ## Send Single Request
 ```

@@ -34,7 +34,7 @@ parameters: [
     },
     {
         key: "default_language_id_threshold",
-        value: {string_value: "0.95"},
+        value: {string_value: "0.30"},
     }
 ]
 instance_group [

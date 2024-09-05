@@ -23,7 +23,7 @@ class TritonPythonModel:
         )
 
         # Use the GPU if available, otherwise use the CPU
-        if torch.cuda.is_available():
+        if args["model_instance_kind"] == "GPU" and torch.cuda.is_available():
             self.device = torch.device("cuda")
             torch_dtype = torch.float16
         else:
