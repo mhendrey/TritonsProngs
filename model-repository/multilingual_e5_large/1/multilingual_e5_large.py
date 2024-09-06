@@ -70,17 +70,15 @@ class TritonPythonModel:
         self.embedding_dtype = pb_utils.triton_string_to_numpy(
             embedding_config["data_type"]
         )
-        model_path = model_config["parameters"]["model_path"]["string_value"]
-
         self.device, self.torch_dtype = TritonPythonModel.get_device_dtype()
 
         self.pad_value = 1
         self.model = AutoModel.from_pretrained(
-            model_path,
+            'intfloat/multilingual-e5-large',
             device_map="auto",
             torch_dtype=self.torch_dtype,
-            local_files_only=True,
-            use_safetensors=True,
+            use_safetensors=True, 
+            local_files_only=True
         )
         # If on a GPU, use torch.compile to improve throughput
         if torch.cuda.is_available():

@@ -68,3 +68,77 @@ used by most clients. Currently supported models utilized by translate:
   Machine translation model that utilizes just the Text-to-Text portion of the
   SeamlessM4T model. Future models will include its predecessor No Language Left
   Behind (NLLB).
+
+## Running Tasks
+Running tasks is orchestrated by using [Taskfile.dev](https://taskfile.dev/)
+
+# Taskfile Instructions
+
+This document provides instructions on how to run tasks defined in the `Taskfile.yml`.  
+
+Create a task.env at the root of project to define enviroment overrides. 
+
+## Tasks Overview
+
+The `Taskfile.yml` includes the following tasks:
+
+- `triton-start`
+- `triton-stop`
+- `model-import`
+- `build-execution-env-all`
+- `build-*-env` (with options: `embed_image`, `embed_text`, `siglip_vision`, `siglip_text`, `multilingual_e5_large`)
+
+## Task Descriptions
+
+### `triton-start`
+
+Starts the Triton server.
+
+```sh
+task triton-start
+```
+
+### `triton-stop`
+
+Stops the Triton server.
+
+```sh
+task triton-stop
+```
+
+### `model-import`
+
+Import model files from huggingface
+
+```sh
+task model-import
+```
+
+### `task build-execution-env-all`
+
+Builds all the conda pack environments used by Triton
+
+```sh
+task build-execution-env-all
+```
+
+### `task build-*-env`
+
+Builds specific conda pack environments used by Triton
+
+```sh
+#Example 
+task build-siglip_text-env
+```
+
+### `Complete Order`
+
+Example of running multiple tasks to stage items needed to run Triton Server
+
+```sh
+task build-execution-env-all
+task model-import
+task triton-start
+# Tail logs of running containr
+docker logs -f $(docker ps -q --filter "name=triton-inference-server")
+```

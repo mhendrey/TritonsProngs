@@ -27,7 +27,6 @@ class TritonPythonModel:
         self.embedding_dtype = pb_utils.triton_string_to_numpy(
             embedding_config["data_type"]
         )
-        model_path = model_config["parameters"]["model_path"]["string_value"]
 
         # Use the GPU if available, otherwise use the CPU
         if torch.cuda.is_available():
@@ -38,7 +37,7 @@ class TritonPythonModel:
             self.torch_dtype = torch.float32  # CPUs can't handle float16
 
         self.model = SiglipVisionModel.from_pretrained(
-            model_path,
+            "google/siglip-so400m-patch14-384",
             device_map="auto",
             torch_dtype=self.torch_dtype,
             local_files_only=True,
