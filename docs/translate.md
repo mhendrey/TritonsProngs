@@ -211,113 +211,116 @@ deployment endpoint that is using SeamlessM4T under the hood. Of course, the
 sentences again. However, the chF2++ metric uses the block of 15 sentences for
 comparison. For each language, we perform translation first by providing the
 `src_lang` as a request parameter. This causes `translate` to skip language detection.
-We then repeat doing the translation, but this not providing the `src_lang`. This
+We then repeat doing the translation, but without providing the `src_lang`. This
 causes `translate` to use the language detection deployment before performing sentence
-segmentation followed by translation.
+segmentation followed by translation. In addition, if the probability assigned to the
+top predicted language is less than the `language_id_threhold` (0.30), then each
+sentence in the segmenter is sent for language detection before being translated.
 
 The validation is run over a total of 96 languages. The results for each language are
 listed below:
 
 ### Results
-| Language | chrF2++ | chrF2++ (Seamless) |
-| :------: | :-----: | :----------------: |
-| afr | 67.7 | 75.4 |
-| amh | 64.0 | 58.6 |
-| arb | 68.6 | 64.7 |
-| ary | 59.9 | 52.3 |
-| arz | 64.2 | 57.6 |
-| asm | 61.2 | 55.8 | 
-| azj | 60.0 | 51.6 |
-| bel | 59.9 | 51.6 |
-| ben | 65.1 | 60.0 |
-| bos | 70.7 | 65.9 |
-| bul | 70.4 | 65.5 |
-| cat | 72.6 | 67.8 |
-| ceb | 69.6 | 65.9 |
-| ces | 68.8 | 63.5 |
-| ckb | 61.5 | 55.9 |
-| cmn | 62.4 | 55.5 |
-| cmn_Hant | 60.6 | 53.4 |
-| cym | 74.7 | 71.1 |
-| dan | 72.5 | 68.9 |
-| deu | 71.7 | 66.5 |
-| ell | 66.3 | 59.6 |
-| est | 65.6 | 60.5 |
-| eus | 64.5 | 57.8 |
-| fin | 63.9 | 58.0 |
-| fra | 72.2 | 67.6 |
-| fuv | 41.9 | 28.8 |
-| gaz | 56.0 | 47.0 |
-| gle | 65.5 | 61.0 |
-| glg | 70.8 | 65.8 |
-| guj | 68.6 | 64.7 |
-| heb | 68.7 | 65.3 |
-| hin | 67.6 | 62.2 |
-| hrv | 67.4 | 61.7 |
-| hun | 66.1 | 60.1 |
-| hye | 68.2 | 63.0 |
-| ibo | 60.3 | 53.1 |
-| ind | 68.6 | 65.6 |
-| isl | 61.6 | 56.3 |
-| ita | 66.3 | 60.0 |
-| jav | 66.8 | 61.4 |
-| jpn | 54.1 | 45.7 |
-| kan | 64.7 | 58.9 |
-| kat | 62.3 | 55.3 |
-| kaz | 64.4 | 58.2 |
-| khk | 60.4 | 52.5 |
-| *khm* | 10.0 | 55.4 |
-| kir | 58.8 | 50.9 |
-| kor | 59.9 | 53.2 |
-| lao | 64.9 | 59.0 |
-| lit | 63.5 | 56.7 |
-| lug | 52.7 | 43.6 |
-| luo | 55.6 | 47.4 |
-| lvs | 63.9 | 58.9 |
-| mai | 69.7 | 65.7 |
-| mal | 65.7 | 60.7 |
-| mar | 66.9 | 61.9 |
-| mkd | 70.9 | 65.8 |
-| mlt | 75.4 | 74.1 |
-| mni | 58.6 | 50.2 |
-| mya | 58.1 | 53.7 |
-| nld | 64.3 | 57.8 |
-| nno | 70.9 | 66.2 |
-| nob | 70.5 | 65.3 |
-| npi | 68.2 | 65.1 |
-| nya | 58.4 | 50.0 |
-| ory | 66.7 | 62.3 |
-| pan | 56.4 | 64.2 |
-| pbt | 61.6 | 56.9 |
-| pes | 66.8 | 61.3 |
-| pol | 63.1 | 55.5 |
-| por | 74.0 | 69.5 |
-| ron | 70.7 | 65.3 |
-| rus | 66.6 | 60.1 |
-| sat | 41.0 | 28.4 |
-| slk | 68.5 | 62.8 |
-| slv | 65.2 | 59.3 |
-| sna | 58.2 | 50.2 |
-| snd | 65.1 | 60.5 |
-| som | 57.9 | 50.8 |
-| spa | 64.8 | 57.7 |
-| srp | 70.9 | 66.6 |
-| swe | 72.6 | 69.0 |
-| swh | 66.5 | 62.4 |
-| tam | 62.9 | 57.3 |
-| tel | 67.0 | 62.5 |
-| tgk | 63.7 | 58.4 |
-| tgl | 69.7 | 65.0 |
-| *tha* | 15.6 | 54.5 |
-| tur | 66.8 | 60.4 |
-| ukr | 67.9 | 62.2 |
-| urd | 63.9 | 59.6 |
-| uzn | 64.0 | 57.2 |
-| vie | 64.5 | 58.9 |
-| yor | 51.0 | 41.6 |
-| yue | 57.6 | 49.2 |
-| zul | 66.5 | 60.6 |
-| **Mean** | **63.47** | **58.84** |
+| Language | chrF2++ w/ src_lang | chrF2++ no src_lang |
+| :------: | :-----------------: | :-----------------: |
+| afr | 67.7 | 67.7 | 
+| amh | 64.0 | 64.0 | 
+| arb | 68.6 | 68.6 | 
+| ary | 59.9 | 58.6 | 
+| arz | 64.1 | 63.2 | 
+| asm | 61.2 | 61.2 | 
+| azj | 60.0 | 60.0 | 
+| bel | 59.9 | 59.9 | 
+| ben | 65.1 | 65.2 | 
+| bos | 70.7 | 70.7 | 
+| bul | 70.4 | 70.4 | 
+| cat | 72.6 | 72.6 | 
+| ceb | 69.7 | 69.6 | 
+| ces | 68.8 | 68.8 |
+| ckb | 61.5 | 61.5 |
+| cmn | 62.4 | 61.8 |
+| cmn_Hant | 60.6 | 55.9 |
+| cym | 74.7 | 74.7 |
+| dan | 72.5 | 72.6 |
+| deu | 71.7 | 71.7 |
+| ell | 66.3 | 66.3 |
+| est | 65.6 | 65.6 |
+| eus | 64.5 | 64.5 |
+| fin | 63.9 | 63.9 |
+| fra | 72.2 | 72.2 |
+| fuv | 41.9 | 41.9 |
+| gaz | 56.0 | 56.0 |
+| gle | 65.5 | 65.5 |
+| glg | 70.8 | 70.8 |
+| guj | 68.6 | 68.6 |
+| heb | 68.7 | 68.8 |
+| hin | 67.6 | 67.6 |
+| hrv | 67.4 | 67.3 |
+| hun | 66.1 | 66.1 |
+| hye | 68.2 | 68.2 |
+| ibo | 60.3 | 60.3 |
+| ind | 68.7 | 68.6 |
+| isl | 61.6 | 61.6 |
+| ita | 66.3 | 66.3 |
+| jav | 66.8 | 66.8 |
+| jpn | 54.1 | 54.1 |
+| kan | 64.7 | 64.8 |
+| kat | 62.3 | 62.3 |
+| kaz | 64.4 | 64.4 |
+| khk | 60.3 | 60.3 |
+| **khm** | 10.0 | 10.0 |
+| kir | 58.8 | 58.8 |
+| kor | 59.9 | 59.9 |
+| lao | 64.9 | 64.9 |
+| lit | 63.5 | 63.5 |
+| lug | 52.7 | 52.7 |
+| luo | 55.6 | 55.6 |
+| lvs | 64.0 | 64.0 |
+| mai | 69.7 | 69.7 |
+| mal | 65.8 | 65.7 |
+| mar | 66.9 | 66.9 |
+| mkd | 70.9 | 70.9 |
+| mlt | 75.4 | 75.4 |
+| mni | 58.6 | 58.6 |
+| mya | 58.1 | 58.1 |
+| nld | 64.3 | 64.3 |
+| nno | 70.9 | 70.9 |
+| nob | 70.5 | 70.5 |
+| npi | 68.3 | 68.3 |
+| nya | 58.4 | 58.4 |
+| ory | 66.6 | 66.7 |
+| pan | 56.4 | 56.4 |
+| pbt | 61.6 | 61.6 |
+| pes | 66.8 | 66.7 |
+| pol | 63.1 | 63.1 |
+| por | 74.0 | 74.0 |
+| ron | 70.7 | 70.7 |
+| rus | 66.7 | 66.6 |
+| sat | 41.0 | 41.0 |
+| slk | 68.5 | 68.5 |
+| slv | 65.2 | 65.2 |
+| sna | 58.2 | 58.2 |
+| snd | 65.1 | 65.1 |
+| som | 57.9 | 57.9 |
+| spa | 64.8 | 64.8 |
+| srp | 70.9 | 70.9 |
+| swe | 72.6 | 72.6 |
+| swh | 66.4 | 66.4 |
+| tam | 62.9 | 62.9 |
+| tel | 67.0 | 67.0 |
+| tgk | 63.7 | 63.7 |
+| tgl | 69.6 | 69.6 |
+| **tha** | 15.4 | 15.5 |
+| tur | 66.8 | 66.8 |
+| ukr | 67.9 | 67.9 |
+| urd | 63.9 | 63.9 |
+| uzn | 64.0 | 64.0 |
+| vie | 64.5 | 64.5 |
+| yor | 51.0 | 51.0 |
+| yue | 57.6 | 57.6 |
+| zul | 66.5 | 66.5 |
+| **Mean** | **63.47** | **63.39** |
+
 
 Comparing against the single sentence translation, we find that we generally get
 slightly better results with an average chrF2++ score of 63.5 compared to the
@@ -328,6 +331,9 @@ These are a result of the
 languages lacking any punctuation. As a result, though Seamless has a context window
 large enough to process all the text it generates a stop token after the first
 sentence or two causing the scores to crater.
+
+In addition, the cmn_Hant also struggles a little bit. This is due to the language
+detection struggling to identify the correct language for this particular language.
 
 ### Code
 The code can be found in the [validate.py](../model_repository/translate/validate.py)
