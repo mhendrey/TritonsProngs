@@ -29,19 +29,19 @@ class TritonPythonModel:
         )
 
         # Use the GPU if available, otherwise use the CPU
-        if torch.cuda.is_available():
+        if args["model_instance_kind"] == "GPU" and torch.cuda.is_available():
             self.device = torch.device("cuda")
-            self.torch_dtype = torch.float16
+            torch_dtype = torch.float16
         else:
             self.device = torch.device("cpu")
-            self.torch_dtype = torch.float32  # CPUs can't handle float16
+            torch_dtype = torch.float32  # CPUs can't handle float16
 
         self.model = SiglipTextModel.from_pretrained(
             "google/siglip-so400m-patch14-384",
             device_map="auto",
-            torch_dtype=self.torch_dtype,
+            torch_dtype=torch_dtype,
             local_files_only=True,
-            use_safetensors=True
+            use_safetensors=True,
         )
         # If on a GPU, use torch.compile to improve throughput
         if torch.cuda.is_available():
@@ -66,6 +66,8 @@ class TritonPythonModel:
         List[pb_utils.InferenceResponse]
             List of response objects with embedding results or error messages
         """
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         logger = pb_utils.Logger
         batch_size = len(requests)
         logger.log_info(f"siglip_text.execute received {batch_size} requests")

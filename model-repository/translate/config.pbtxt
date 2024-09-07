@@ -1,0 +1,47 @@
+name: "translate"
+backend: "python"
+max_batch_size: 4
+default_model_filename: "translate.py"
+
+input [
+    {
+        name: "INPUT_TEXT"
+        data_type: TYPE_STRING
+        dims: [1]
+    }
+]
+output [
+    {
+        name: "TRANSLATED_TEXT"
+        data_type: TYPE_STRING
+        dims: [1]
+    }
+]
+parameters: [
+    {
+        key: "default_language_id_model",
+        value: {
+            string_value: "fasttext_language_identification"
+        },
+    },
+    {
+        key: "default_sentence_segmenter",
+        value: {string_value: "sentencex"},
+    },
+    {
+        key: "default_translation_model",
+        value: {string_value: "seamlessm4t_text2text"},
+    },
+    {
+        key: "default_language_id_threshold",
+        value: {string_value: "0.30"},
+    }
+]
+instance_group [
+    {
+        kind: KIND_CPU,
+        count: 3
+    }
+]
+version_policy: {latest: {num_versions: 1}}
+dynamic_batching: {}

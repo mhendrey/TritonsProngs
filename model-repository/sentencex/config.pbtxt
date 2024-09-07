@@ -1,0 +1,39 @@
+name: "sentencex"
+backend: "python"
+max_batch_size: 50
+default_model_filename: "sentencex_triton.py"
+
+input [
+    {
+        name: "SRC_LANG",
+        data_type: TYPE_STRING
+        dims: [1]
+    },
+    {
+        name: "INPUT_TEXT"
+        data_type: TYPE_STRING
+        dims: [1]
+    }
+]
+output [
+    {
+        name: "SENTENCES"
+        data_type: TYPE_STRING
+        dims: [-1]
+    }
+]
+
+parameters: [
+    {
+        key: "EXECUTION_ENV_PATH",
+        value: {string_value: "$$TRITON_MODEL_DIRECTORY/sentencex.tar.gz"}
+    }
+]
+instance_group [
+    {
+        kind: KIND_CPU,
+        count: 1
+    }    
+]
+version_policy: {latest: {num_versions: 1}}
+dynamic_batching: {}
