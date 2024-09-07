@@ -120,9 +120,9 @@ docker logs -f $(docker ps -q --filter "name=triton-inference-server")
 
 ### `Overriding Defaults`  
 
-At Root of project define file *local.env* 
+At Root of project create file **.env** 
 
-### Environment Variables for `local.env`
+### Environment Variables for `.env`
 
 The following docker compose and Task variables can be overridden in the `local.env` file:
 
@@ -136,4 +136,4 @@ The following docker compose and Task variables can be overridden in the `local.
 | `HF_HUB_CACHE_TARGET`              | TARGET HUGGING FACE CACHE DIR                   | `/models`                       |
 | `COMPOSE_CONDA_PACK_BASE_IMAGE`    | COMPOSE CONDA PACK BASE IMAGE                   | `continuumio/miniconda3:latest` |
 
-**Note:** Format in `local.env` file is as following `VAR`=`VALUE`.
+**Note:** Format in `.env` file is as following `VAR`=`VALUE`.
