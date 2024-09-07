@@ -33,12 +33,11 @@ class TritonPythonModel:
             "facebook/seamless-m4t-v2-large",
             device_map="auto",
             torch_dtype=torch_dtype,
-            cache_dir="/hub",
             local_files_only=True,
+            use_safetensors=True,
         )
         self.processor = SeamlessM4TProcessorMulti.from_pretrained(
             "facebook/seamless-m4t-v2-large",
-            cache_dir="/hub",
             local_files_only=True,
         )
         # Get list of supported language tokens. Of the form "__eng__"

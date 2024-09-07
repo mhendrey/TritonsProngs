@@ -34,12 +34,6 @@ parameters: [
         value: {string_value: "$$TRITON_MODEL_DIRECTORY/fasttext_language_identification.tar.gz"}
     },
     {
-        key: "model_path",
-        value: {
-                string_value: "/hub/models--facebook--fasttext-language-identification/snapshots/3af127d4124fc58b75666f3594bb5143b9757e78/model.bin"
-        },
-    },
-    {
         key: "default_top_k",
         value: {
             string_value: "1"

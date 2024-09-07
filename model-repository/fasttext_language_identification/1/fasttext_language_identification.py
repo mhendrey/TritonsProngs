@@ -1,4 +1,5 @@
 import fasttext
+from huggingface_hub import hf_hub_download
 import json
 import numpy as np
 import re
@@ -34,7 +35,12 @@ class TritonPythonModel:
         )
 
         # Get parameters from config.pbtext
-        model_path = model_config["parameters"]["model_path"]["string_value"]
+        model_path = hf_hub_download(
+            "facebook/fasttext-language-identification",
+            filename="model.bin",
+            local_files_only=True,
+        )
+        # model_path = model_config["parameters"]["model_path"]["string_value"]
         self.default_top_k = int(
             model_config["parameters"]["default_top_k"]["string_value"]
         )
