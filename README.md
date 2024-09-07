@@ -44,6 +44,31 @@ used by most clients. Currently supported models accessible within embed_text:
   Use in conjunction with SigLIP Vision to perform zero-shot learning or semantic
   searching of images with textual descriptions.
 
+## Translation
+Machine translation models translate source text from one language to another. This is
+an age-old application of neural networks. Unfortunately, that history seems to cause
+some unwanted consequences. Mainly, most machine translation models have been trained
+on sentence-level language pairs because that is all the data that the approaches that
+the early models could handle. Thus, despite more modern architectures that can support
+much large context, the models will stop generating the translation after just a
+sentence or two. This means that we also need to provide a way to segment a client's
+text into appropriate lengths for the translation model to handle.
+
+The [translate](docs/translate.md) deployment is the main interface that should be
+used by most clients. Currently supported models utilized by translate:
+
+* [fastText Language Detection](docs/fasttext_language_identification.md)
+  Language identification model. Currently the only available, but future versions may
+  include Lingua.
+* [Sentencex](docs/sentencex.md)
+  Lightweight sentence segmentation. Seems to work well for most languages, with Thai
+  and Khmer being noticeable exceptions given their lack of punctutation. Additional
+  options like PySBD may be added in the future.
+* [SeamlessM4Tv2Large](docs/seamlessm4t_text2text.md)
+  Machine translation model that utilizes just the Text-to-Text portion of the
+  SeamlessM4T model. Future models will include its predecessor No Language Left
+  Behind (NLLB).
+
 ## Running Tasks
 Running tasks is orchestrated by using [Taskfile.dev](https://taskfile.dev/)
 

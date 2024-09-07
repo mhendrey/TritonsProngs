@@ -34,26 +34,6 @@ class TritonPythonModel:
         )
         return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
 
-    @staticmethod
-    def get_device_dtype():
-        """If GPU is detected, then set device as 'cuda' and dtype as float16, else
-        use the cpu and float32.
-
-        Returns
-        -------
-        device: torch.device
-        dtype: torch.dtype
-        """
-        # Use the GPU if available, otherwise use the CPU
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-            torch_dtype = torch.float16
-        else:
-            device = torch.device("cpu")
-            torch_dtype = torch.float32
-
-        return device, torch_dtype
-
     def initialize(self, args):
         """
         Initialize Multilingual-e5-large and load configuration parameters. Using
@@ -70,15 +50,22 @@ class TritonPythonModel:
         self.embedding_dtype = pb_utils.triton_string_to_numpy(
             embedding_config["data_type"]
         )
-        self.device, self.torch_dtype = TritonPythonModel.get_device_dtype()
+
+        # Use the GPU if available, otherwise use the CPU
+        if args["model_instance_kind"] == "GPU" and torch.cuda.is_available():
+            self.device = torch.device("cuda")
+            torch_dtype = torch.float16
+        else:
+            self.device = torch.device("cpu")
+            torch_dtype = torch.float32  # CPUs can't handle float16
 
         self.pad_value = 1
         self.model = AutoModel.from_pretrained(
-            'intfloat/multilingual-e5-large',
+            "intfloat/multilingual-e5-large",
             device_map="auto",
-            torch_dtype=self.torch_dtype,
-            use_safetensors=True, 
-            local_files_only=True
+            torch_dtype=torch_dtype,
+            use_safetensors=True,
+            local_files_only=True,
         )
         # If on a GPU, use torch.compile to improve throughput
         if torch.cuda.is_available():
@@ -104,6 +91,8 @@ class TritonPythonModel:
         List[pb_utils.InferenceResponse]
             List of response objects with embedding results or error messages
         """
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         logger = pb_utils.Logger
         batch_size = len(requests)
         logger.log_info(f"multilingual-e5-large.execute received {batch_size} requests")
