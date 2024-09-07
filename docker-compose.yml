@@ -10,6 +10,11 @@ x-base_inference_service: &base_inference_service
       --model-repository=${TRITON_INFERENCE_SERVER_MODEL_REPO:-/model-repository} \
       --model-control-mode=${TRITON_INERENCE_SERVER_MODEL_CONTROL_MODE:-explicit} \
       --model-config-name=${TRITON_INERENCE_SERVER_MODEL_CONFIG_NAME:-"config"} \
+      --load-model=embed_image \
+      --load-model=siglip_vision \
+      --load-model=embed_text \
+      --load-model=multilingual_e5_large \
+      --load-model=siglip_text \
       --load-model=translate \
       --load-model=fasttext_language_identification \
       --load-model=sentencex \
