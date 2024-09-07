@@ -1,6 +1,6 @@
 version: '3'
 
-dontenv: ['task.env']
+dontenv: ['.env']
 
 vars:
   COMPUTE_TYPE: '{{default "gpu" .COMPUTE_TYPE}}'

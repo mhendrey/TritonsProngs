@@ -164,4 +164,4 @@ cython_debug/
 *.tar.gz
 .task
 models
-task.env
+*.env
