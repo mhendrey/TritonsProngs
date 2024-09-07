@@ -1,16 +1,13 @@
 import asyncio
-import base64
-from io import BytesIO
 import json
-from PIL import Image
-from transformers import AutoProcessor
+from transformers import AutoProcessor, AutoTokenizer
 
 import triton_python_backend_utils as pb_utils
 
 
 class TritonPythonModel:
     """
-    Triton Inference Server deployment utilizing the python_backend for image embedding
+    Triton Inference Server deployment utilizing the python_backend for text embedding
     models. Currently only SigLIP is supported.
     """
 
@@ -36,104 +33,95 @@ class TritonPythonModel:
         )
         self.processors = {}
         for embed_model, model_path in embed_models.items():
-            if embed_model == "siglip_vision":
-                self.processors[embed_model] = AutoProcessor.from_pretrained(
-                    model_path,
-                    local_files=True,
-                )
+            if embed_model == "siglip_text":
+                self.processors[embed_model] = AutoProcessor.from_pretrained("google/siglip-so400m-patch14-384", local_files=True)
+               
+            elif embed_model == "multilingual_e5_large":
+                self.processors[embed_model] = AutoTokenizer.from_pretrained("intfloat/multilingual-e5-large", local_files=True)
+                
         ## Get additional parameters from the config.pbtxt file
-        # bool_value doesn't appear supported forcing using string_value
-        # Specify the default value for base64_encoded request parameter.
-        default_base64_encoded_str = model_config["parameters"][
-            "default_base64_encoded"
-        ]["string_value"]
-        if default_base64_encoded_str.lower() == "true":
-            self.default_base64_encoded = True
-        elif default_base64_encoded_str.lower() == "false":
-            self.default_base64_encoded = False
-        else:
-            raise pb_utils.TritonError(
-                "model_config['parameters']['default_base64_encoded']="
-                + f"{default_base64_encoded_str} must be 'true' | 'false'. "
-            )
-
         # Specify the default embedding model. Can be overriden in request parameter
         self.default_embed_model = model_config["parameters"]["default_embed_model"][
             "string_value"
         ]
 
-    def process_request(self, request, embed_model: str, base64_encoded: bool):
+    def process_request(self, request, embed_model: str):
         """
-        Process the input image request and prepare pixel values for embedding.
+        Process the input text request and prepare input_ids for embedding.
 
         Parameters
         ----------
         request : pb_utils.InferenceRequest
-            Inference request containing the input image.
+            Inference request containing the input text.
         embed_model : str
             Embedding model to use.
-        base64_encoded : bool
-            Whether the input image is base64 encoded.
 
         Returns
         -------
         np.ndarray
-            Processed pixel values of the input image.
+            Tokenized text
         """
         try:
-            input_image_tt = pb_utils.get_input_tensor_by_name(request, "INPUT_IMAGE")
+            input_text_tt = pb_utils.get_input_tensor_by_name(request, "INPUT_TEXT")
         except Exception as exc:
             raise ValueError(f"Failed on getting input tensor from request: {exc}")
 
         try:
-            images_bytes = []
-            for b in input_image_tt.as_numpy().reshape(-1):
-                if base64_encoded:
-                    images_bytes.append(base64.b64decode(b))
-                else:
-                    images_bytes.append(b)
+            input_text = [
+                b.decode("utf-8") for b in input_text_tt.as_numpy().reshape(-1)
+            ]
         except Exception as exc:
-            raise ValueError(
-                f"Failed getting bytes of the image from request data: {exc}"
-            )
+            raise ValueError(f"Failed on converting numpy to str request data: {exc}")
 
         try:
-            images = [Image.open(BytesIO(b)).convert("RGB") for b in images_bytes]
-        except Exception as exc:
-            raise ValueError(f"Failed on PIL.Image.open() request data: {exc}")
+            input_ids_np = self.processors[embed_model](
+                text=input_text, padding="max_length", return_tensors="pt"
+            )["input_ids"].numpy()
+            n_tokens = input_ids_np.shape[-1]
 
-        try:
-            if embed_model == "siglip_vision":
-                pixel_values_np = self.processors[embed_model](
-                    images=images, padding="max_length", return_tensors="pt"
-                )["pixel_values"].numpy()
+            # Safety Checks
+            if embed_model == "multilingual_e5_large":
+                # Could set truncation=True, but that seems dangerously silent for
+                # something that could severely impact performance
+                if n_tokens > 512:
+                    raise ValueError(
+                        f"Processing {input_text} has {n_tokens} tokens which exceeds max of 512."
+                    )
+                for text in input_text:
+                    if not (text.startswith("query: ") or text.startswith("passage: ")):
+                        raise ValueError(
+                            f"Processing {text} must start with 'query: ' or"
+                            + f"'passage: ' prefix when using {embed_model}"
+                        )
+            elif embed_model == "siglip_text":
+                # Could set truncation=True, but that seems dangerously silent for
+                # something that could severely impact performance
+                if n_tokens > 64:
+                    raise ValueError(
+                        f"Processing {input_text} has {n_tokens} tokens which exceeds max of 64."
+                    )
         except Exception as exc:
             raise ValueError(
-                f"Failed on {embed_model}'s Processor(images=image): {exc}"
+                f"Failed on {embed_model}'s Processor(text=input_text): {exc}"
             )
 
-        # Shape = [batch_size, 3, 384, 384], where batch_size should be 1
-        return pixel_values_np
+        # Shape = [batch_size, 512 or 64], where batch_size should be 1
+        return input_ids_np
 
     async def execute(self, requests: list) -> list:
         """
-        Execute a batch of embedding requests on provided images. Images can be
-        sent either as raw bytes or base64 encoded strings.
+        Execute a batch of embedding requests on provided texts.
 
         Option Request Parameters
         -------------------------
         embed_model : str
             Specify which embedding model to use.
             If None, default_embed_model is used.
-        base64_encoded : bool
-            Set to true if image is sent base64 encoded.
-            If None, default_base64_encoded is used.
-
 
         Parameters
         ----------
         requests : List[pb_utils.InferenceRequest]
-            List of inference requests each containing an image to be embedded.
+            List of inference requests each containing text to be embedded.
 
         Returns
         -------
@@ -142,23 +130,26 @@ class TritonPythonModel:
         """
         logger = pb_utils.Logger
         batch_size = len(requests)
-        logger.log_info(f"embed_image.execute received {batch_size} requests")
+        logger.log_info(f"embed_text.execute received {batch_size} requests")
         responses = [None] * batch_size
         inference_response_awaits = []
         valid_requests = []
         for batch_id, request in enumerate(requests):
             # Handle any request parameters
             request_params = json.loads(request.parameters())
-            base64_encoded = request_params.get(
-                "base64_encoded", self.default_base64_encoded
-            )
             embed_model = request_params.get("embed_model", self.default_embed_model)
 
-            try:
-                pixel_values_np = self.process_request(
-                    request, embed_model, base64_encoded
+            if embed_model not in self.processors:
+                responses[batch_id] = pb_utils.InferenceResponse(
+                    error=pb_utils.TritonError(
+                        f"{embed_model=:} not in {self.processors.keys()}"
+                    )
                 )
-                pixel_values_tt = pb_utils.Tensor("PIXEL_VALUES", pixel_values_np)
+                continue
+
+            try:
+                input_ids_np = self.process_request(request, embed_model)
+                input_ids_tt = pb_utils.Tensor("INPUT_IDS", input_ids_np)
             except Exception as exc:
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(f"{exc}")
@@ -169,7 +160,7 @@ class TritonPythonModel:
                 infer_model_request = pb_utils.InferenceRequest(
                     model_name=embed_model,
                     requested_output_names=["EMBEDDING"],
-                    inputs=[pixel_values_tt],
+                    inputs=[input_ids_tt],
                 )
                 # Perform asynchronous inference request
                 inference_response_awaits.append(infer_model_request.async_exec())
@@ -179,8 +170,7 @@ class TritonPythonModel:
         for model_response, batch_id in zip(inference_responses, valid_requests):
             if model_response.has_error() and responses[batch_id] is None:
                 err_msg = (
-                    "Error embedding the image: "
-                    + f"{model_response.error().message()}"
+                    "Error embedding the text: " + f"{model_response.error().message()}"
                 )
                 response = pb_utils.InferenceResponse(
                     error=pb_utils.TritonError(err_msg)

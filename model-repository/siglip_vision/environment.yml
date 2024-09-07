@@ -1,6 +1,7 @@
-name: embed_text
+name: siglip_vision
 channels:
     - pytorch
+    - nvidia
     - conda-forge
     - defaults
 dependencies:
@@ -9,7 +10,8 @@ dependencies:
     - pip
     - protobuf
     - pytorch ==2.3.1
-    - cpuonly ==2.0
+   # - pytorch-cuda ==12.1
     - transformers ==4.42.4
+    - accelerate ==0.32.1
     - sentencepiece ==0.2.0
-    - pillow ==10.4.0
+    - conda-pack
