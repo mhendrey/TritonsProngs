@@ -60,6 +60,8 @@ class TritonPythonModel:
         -------
         responses: List[pb_utils.InferenceResponse]
         """
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         logger = pb_utils.Logger
         batch_size = len(requests)
         logger.log_info(f"seamlessm4t_text2text.execute received {batch_size} requests")
