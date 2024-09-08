@@ -76,7 +76,7 @@ Running tasks is orchestrated by using [Taskfile.dev](https://taskfile.dev/)
 
 This document provides instructions on how to run tasks defined in the `Taskfile.yml`.  
 
-Create a task.env at the root of project to define enviroment overrides. 
+Create a `.env` at the root of project to define enviroment overrides. 
 
 ## Tasks Overview
 
@@ -142,3 +142,23 @@ task triton-start
 # Tail logs of running containr
 docker logs -f $(docker ps -q --filter "name=triton-inference-server")
 ```
+
+### `Overriding Defaults`  
+
+At Root of project create file **.env** 
+
+### Environment Variables for `.env`
+
+The following docker compose and Task variables can be overridden in the `local.env` file:
+
+| Variable Name     | Description                                                      | Default Value                   |
+|-------------------|------------------------------------------------------------------|---------------------------------|
+| `TRITON_INFERENCE_SERVER_IMAGE`    | TRITON BASE IMAGE                               | `nvcr.io/nvidia/tritonserver`   |
+| `TRITON_INFERENCE_SERVER_TAG`      | TRITON BASE IMAGE VERSION                       | `24.07-py3`                     |
+| `MODEL_REPOSITORY_SOURCE`          | SOURCE MODEL REPO DIR                           | `./model-repository`            |
+| `MODEL_REPOSITORY_TARGET`          | TARGET MODEL REPO DIR                           | `/model-repository`             |
+| `HF_HUB_CACHE_SOURCE`              | SOURCE HUGGING FACE CACHE DIR                   | `./models`                      |
+| `HF_HUB_CACHE_TARGET`              | TARGET HUGGING FACE CACHE DIR                   | `/models`                       |
+| `COMPOSE_CONDA_PACK_BASE_IMAGE`    | COMPOSE CONDA PACK BASE IMAGE                   | `continuumio/miniconda3:latest` |
+
+**Note:** Format in `.env` file is as following `VAR`=`VALUE`.
