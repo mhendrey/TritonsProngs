@@ -19,7 +19,8 @@ tasks:
       - test -f ./model-repository/embed_image/embed_image.tar.gz
       - test -f ./model-repository/embed_text/embed_text.tar.gz
       - test -f ./model-repository/fasttext_language_identification/fasttext_language_identification.tar.gz
-      - test -f ./model-repository/multilingual_e5_large/multilingual_e5_large.tar.gz 
+      - test -f ./model-repository/multilingual_e5_large/multilingual_e5_large.tar.gz
+      - test -f ./model-repository/nllb_200_distilled_600M/nllb_200_distilled_600M.tar.gz
       - test -f ./model-repository/seamlessm4t_text2text/seamlessm4t_text2text.tar.gz
       - test -f ./model-repository/sentencex/sentencex.tar.gz
       - test -f ./model-repository/siglip_text/siglip_text.tar.gz
@@ -41,12 +42,13 @@ tasks:
       - mkdir -p models
       - huggingface-cli download facebook/fasttext-language-identification --cache-dir models
       - huggingface-cli download facebook/seamless-m4t-v2-large --cache-dir models
+      - huggingface-cli download facebook/nllb-200-distilled-600M --cache-dir models
       - huggingface-cli download google/siglip-so400m-patch14-384 --cache-dir models
       - huggingface-cli download intfloat/multilingual-e5-large --cache-dir models
 
   build-execution-env-all:
     desc: "Taks to build all execution environments"
-    deps: [build-embed_image-env, build-embed_text-env, build-fasttext_language_identification-env, build-multilingual_e5_large-env, build-seamlessm4t_text2text-env, build-siglip_text-env, build-siglip_vision-env]
+    deps: [build-embed_image-env, build-embed_text-env, build-fasttext_language_identification-env, build-multilingual_e5_large-env, build-nllb_200_distilled_600M-env, build-seamlessm4t_text2text-env, build-siglip_text-env, build-siglip_vision-env]
 
   build-*-env:
     vars:

@@ -1,0 +1,43 @@
+name: "nllb_200_distilled_600M"
+backend: "python"
+max_batch_size: 36
+default_model_filename: "nllb_200_distilled_600M.py"
+
+input [
+  {
+    name: "INPUT_TEXT"
+    data_type: TYPE_STRING
+    dims: [1]
+  },
+  {
+    name: "SRC_LANG",
+    data_type: TYPE_STRING
+    dims: [1]
+  },
+  {
+    name: "TGT_LANG",
+    data_type: TYPE_STRING
+    dims: [1]
+  }
+]
+output [
+  {
+    name: "TRANSLATED_TEXT"
+    data_type: TYPE_STRING
+    dims: [1]
+  }
+]
+
+parameters: {
+  key: "EXECUTION_ENV_PATH",
+  value: {string_value: "$$TRITON_MODEL_DIRECTORY/nllb_200_distilled_600M.tar.gz"}
+}
+
+instance_group [
+  {
+    kind: KIND_AUTO,
+    count: 1
+  }
+]
+dynamic_batching: {}
+version_policy: { latest: { num_versions: 1}}

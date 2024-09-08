@@ -19,6 +19,7 @@ x-base_inference_service: &base_inference_service
       --load-model=fasttext_language_identification \
       --load-model=sentencex \
       --load-model=seamlessm4t_text2text \
+      --load-model=nllb_200_distilled_600M \
       --log-verbose=1 \
       --log-format=ISO8601 \
       --log-info=true \
