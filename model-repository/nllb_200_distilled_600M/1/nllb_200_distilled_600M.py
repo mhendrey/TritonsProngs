@@ -150,9 +150,6 @@ class TritonPythonModel:
                     num_return_sequences=1,
                     max_new_tokens=512,
                     no_repeat_ngram_size=3,
-                    do_sample=True,
-                    top_k=5,
-                    temperature=0.8,
                 )
         except Exception as exc:
             for batch_id in valid_requests:
