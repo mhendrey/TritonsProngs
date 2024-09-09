@@ -36,7 +36,6 @@ class TritonPythonModel:
             device_map="auto",
             torch_dtype=torch_dtype,
             local_files_only=True,
-            use_safetensors=True,
             attn_implementation=attn_implementation,
         )
         self.tokenizer = NllbTokenizerFastMulti.from_pretrained(
@@ -127,6 +126,7 @@ class TritonPythonModel:
                 text=input_texts,
                 src_lang=src_langs,
                 return_tensors="pt",
+                padding=True,
             ).to(self.device)
         except Exception as exc:
             # Error with the batch. Be careful error msg doesn't cross
@@ -142,14 +142,18 @@ class TritonPythonModel:
 
         ## Generate output tokens
         try:
-            output_tokens = self.model.generate(
-                **input_ids,
-                tgt_lang=tgt_langs,
-                num_beams=3,
-                num_return_sequences=1,
-                max_new_tokens=1024,
-                no_repeat_ngram_size=3,
-            )
+            with torch.no_grad():
+                output_tokens = self.model.generate(
+                    **input_ids,
+                    tgt_lang=tgt_langs,
+                    num_beams=1,  # Massive throughput hit if > 1
+                    num_return_sequences=1,
+                    max_new_tokens=512,
+                    no_repeat_ngram_size=3,
+                    do_sample=True,
+                    top_k=5,
+                    temperature=0.8,
+                )
         except Exception as exc:
             for batch_id in valid_requests:
                 response = pb_utils.InferenceResponse(
