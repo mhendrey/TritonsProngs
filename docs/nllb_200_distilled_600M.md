@@ -1,11 +1,13 @@
-#  SeamlessM4T_Text2Text
-This deployment hosts the text to text portion of
-[SeamlessM4Tv2Large](https://huggingface.co/facebook/seamless-m4t-v2-large)
-to perform machine translation. It takes as input the text to be translated along with
+#  NLLB-200 (Distilled 600M)
+This deployment hosts the
+[nllb-200-distilled-600M](https://huggingface.co/facebook/nllb-200-distilled-600M)
+for machine translation. It takes as input the text to be translated along with
 the source language identifier (ISO 639-3) and the target language identifier
 (ISO 639-3) and returns the translated text. If you don't know the source language,
 you can use the
 [fastText Language Identifier](./fasttext_language_identification.md)
+
+**NOTE** NLLB uses the language id & script, e.g., "eng_Latn" as the src/tgt lang.
 
 Like most machine translation models, this model appears to have been trained on
 sentence level data. This means that if you provide a long section of text it will
@@ -32,8 +34,8 @@ base_url = "http://localhost:8000/v2/models"
 text = (
     "The iridescent chameleon sauntered across the neon-lit cyberpunk cityscape."
 )
-src_lang = "eng"
-tgt_lang = "fra"
+src_lang = "eng_Latn"
+tgt_lang = "fra_Latn"
 
 inference_request = {
     "inputs": [
@@ -58,14 +60,14 @@ inference_request = {
     ]
 }
 model_response = requests.post(
-    url=f"{base_url}/seamlessm4t_text2text/infer",
+    url=f"{base_url}/nllb_200_distilled_600M/infer",
     json=inference_request,
 ).json()
 
 """
-JSON response output looks like
+JSON response output looks like. This is not as good as the Seamless translation
 {
-    "model_name": "seamlessm4t_text2text",
+    "model_name": "nllb_200_distilled_600M",
     "model_version": "1",
     "outputs": [
         {
@@ -73,7 +75,7 @@ JSON response output looks like
             "datatype": "BYTES",
             "shape": [1, 1],
             "data": [
-                "Le caméléon iridescent se promenait à travers le paysage urbain cyberpunk éclairé au néon."
+                "Le chaméléon iridescent a traversé le cyberpunk à neon."
             ]
         }
     ]
@@ -107,8 +109,8 @@ sentences = [
     '新西兰队队长萨姆·科尔在第 89 分钟打入制胜一球，让球队规模虽小但热情的球迷陷入疯狂。',
     '这场胜利标志着新西兰足球的历史性时刻，并将在半决赛中与常年强队德国队展开一场大卫与歌利亚的较量。'
 ]
-src_langs = ['eng', 'eng', 'eng', 'eng', 'zho', 'zho', 'zho', 'zho']
-tgt_langs = ['fra', 'fra', 'fra', 'fra', 'eng', 'eng', 'eng', 'eng']
+src_langs = ['eng_Latn', 'eng_Latn', 'eng_Latn', 'eng_Latn', 'zho_Hans', 'zho_Hans', 'zho_Hans', 'zho_Hans']
+tgt_langs = ['fra_Latn', 'fra_Latn', 'fra_Latn', 'fra_Latn', 'eng_Latn', 'eng_Latn', 'eng_Latn', 'eng_Latn']
 
 futures = {}
 results = {}
@@ -137,7 +139,7 @@ with ThreadPoolExecutor(max_workers=60) as executor:
             ]
         }
         future = executor.submit(requests.post,
-            url=f"{base_url}/seamlessm4t_text2text/infer",
+            url=f"{base_url}/nllb_200_distilled_600M/infer",
             json=inference_request,
         )
         futures[future] = i
@@ -160,15 +162,15 @@ for k, v in sorted(results.items()):
 ```
 
 ## Performance Analysis
-There is some data in [data/seamlessm4t_text2text](../data/seamlessm4t_text2text/load_sample.json)
+There is some data in [data/nllb_200_distilled_600M](../data/nllb_200_distilled_600M/load_sample.json)
 which can be used with the `perf_analyzer` CLI in the Triton Inference Server SDK
 container.
 
 ```
 sdk-container:/workspace perf_analyzer \
-    -m seamlessm4t_text2text \
+    -m nllb_200_distilled_600M \
     -v \
-    --input-data data/seamlessm4t_text2text/load_sample.json \
+    --input-data data/nllb_200_distilled_600M/load_sample.json \
     --measurement-mode=time_windows \
     --measurement-interval=20000 \
     --concurrency-range=60
@@ -176,31 +178,31 @@ sdk-container:/workspace perf_analyzer \
 Gives the following result on an RTX4090 GPU
 
 * Request concurrency: 60
-  * Pass [1] throughput: 39.2406 infer/sec. Avg latency: 1483547 usec (std 95250 usec). 
-  * Pass [2] throughput: 41.4547 infer/sec. Avg latency: 1458850 usec (std 112853 usec). 
-  * Pass [3] throughput: 40.1635 infer/sec. Avg latency: 1469074 usec (std 108947 usec). 
+  * Pass [1] throughput: 160.527 infer/sec. Avg latency: 371408 usec (std 53577 usec). 
+  * Pass [2] throughput: 161.954 infer/sec. Avg latency: 369373 usec (std 37835 usec). 
+  * Pass [3] throughput: 161.963 infer/sec. Avg latency: 369320 usec (std 37378 usec). 
   * Client: 
-    * Request count: 2902
-    * Throughput: 40.2859 infer/sec
-    * Avg client overhead: 0.00%
-    * Avg latency: 1470271 usec (standard deviation 70666 usec)
-    * p50 latency: 1521789 usec
-    * p90 latency: 1663912 usec
-    * p95 latency: 1674379 usec
-    * p99 latency: 1712540 usec
-    * Avg HTTP time: 1470265 usec (send 239 usec + response wait 1470026 usec + receive 0 usec)
+    * Request count: 11629
+    * Throughput: 161.481 infer/sec
+    * Avg client overhead: 0.01%
+    * Avg latency: 370030 usec (standard deviation 17635 usec)
+    * p50 latency: 430452 usec
+    * p90 latency: 460940 usec
+    * p95 latency: 468470 usec
+    * p99 latency: 487289 usec
+    * Avg HTTP time: 370025 usec (send 90 usec + response wait 369935 usec + receive 0 usec)
   * Server: 
-    * Inference count: 2902
-    * Execution count: 92
-    * Successful request count: 2902
-    * Avg request latency: 1469289 usec (overhead 30 usec + queue 681745 usec + compute input 209 usec + compute infer 787045 usec + compute output 259 usec)
+    * Inference count: 11629
+    * Execution count: 324
+    * Successful request count: 11629
+    * Avg request latency: 370637 usec (overhead 13 usec + queue 150243 usec + compute input 247 usec + compute infer 220131 usec + compute output 1 usec)
 
 * Inferences/Second vs. Client Average Batch Latency
-* Concurrency: 60, throughput: 40.2859 infer/sec, latency 1470271 usec
+* Concurrency: 60, throughput: 161.481 infer/sec, latency 370030 usec
 
 
 ## Validation
-To validate this implementation of SeamlessM4Tv2LargeForTextToText, we use the
+To validate this implementation of NLLB-200-Distilled-600M, we use the
 same approach outlined in the
 [Seamless paper](https://ai.meta.com/research/publications/seamless-multilingual-expressive-and-streaming-speech-translation/).
 In particular we are looking to match the results in Table 7 that calculates the chrF
@@ -209,115 +211,116 @@ the translated 95 different languages into English (X-eng). The table provides t
 average chrF2++ score over those 95 languages of 59.2.
 
 The validation is run over a total of 96 languages, but not exactly sure which language was
-added (guessing it was cmn_Hant, which is different from the others and seems added after
-the fact). The results for each language are listed below:
+added. The results for each language are listed below:
 
 ### Results
 
 | Language | chrF2++ |
 | :------: | :-----: |
-| afr | 75.4 |
-| amh | 58.6 |
-| arb | 64.7 |
-| ary | 52.3 |
-| arz | 57.6 |
-| asm | 55.8 |
-| azj | 51.6 |
-| bel | 51.6 |
-| ben | 60.0 |
-| bos | 65.9 |
-| bul | 65.5 |
-| cat | 67.8 |
-| ceb | 65.9 |
-| ces | 63.5 |
-| ckb | 55.9 |
-| cmn | 55.5 |
-| cmn_Hant | 53.4 |
-| cym | 71.1 |
-| dan | 68.9 |
-| deu | 66.5 |
-| ell | 59.6 |
-| est | 60.5 |
-| eus | 57.8 |
-| fin | 58.0 |
-| fra | 67.6 |
-| fuv | 28.8 |
-| gaz | 47.0 |
-| gle | 61.0 |
-| glg | 65.8 |
-| guj | 64.7 |
-| heb | 65.3 |
-| hin | 62.2 |
-| hrv | 61.7 |
-| hun | 60.1 |
-| hye | 63.0 |
-| ibo | 53.1 |
-| ind | 65.6 |
-| isl | 56.3 |
-| ita | 60.0 |
-| jav | 61.4 |
-| jpn | 45.7 |
-| kan | 58.9 |
-| kat | 55.3 |
-| kaz | 58.2 |
-| khk | 52.5 |
-| khm | 55.4 |
-| kir | 50.9 |
-| kor | 53.2 |
-| lao | 59.0 |
-| lit | 56.7 |
-| lug | 43.6 |
-| luo | 47.4 |
-| lvs | 58.9 |
-| mai | 65.7 |
-| mal | 60.7 |
-| mar | 61.9 |
-| mkd | 65.8 |
-| mlt | 74.1 |
-| mni | 50.2 |
-| mya | 53.7 |
-| nld | 57.8 |
-| nno | 66.2 |
-| nob | 65.3 |
-| npi | 65.1 |
-| nya | 50.0 |
-| ory | 62.3 |
-| pan | 64.2 |
-| pbt | 56.9 |
-| pes | 61.3 |
-| pol | 55.5 |
-| por | 69.5 |
-| ron | 65.3 |
-| rus | 60.1 |
-| sat | 28.4 |
-| slk | 62.8 |
-| slv | 59.3 |
-| sna | 50.2 |
-| snd | 60.5 |
-| som | 50.8 |
-| spa | 57.7 |
-| srp | 66.6 |
-| swe | 69.0 |
-| swh | 62.4 |
-| tam | 57.3 |
-| tel | 62.5 |
-| tgk | 58.4 |
-| tgl | 65.0 |
-| tha | 54.5 |
-| tur | 60.4 |
-| ukr | 62.2 |
-| urd | 59.6 |
-| uzn | 57.2 |
-| vie | 58.9 |
-| yor | 41.6 |
-| yue | 49.2 |
-| zul | 60.6 |
-| **Mean** | **58.84**
+| afr_Latn | 71.7 |
+| amh_Ethi | 52.2 |
+| arb_Arab | 60.4 |
+| ary_Arab | 49.3 |
+| arz_Arab | 54.5 |
+| asm_Beng | 51.0 |
+| azj_Latn | 49.4 |
+| bel_Cyrl | 48.4 |
+| ben_Beng | 56.2 |
+| bos_Latn | 61.9 |
+| bul_Cyrl | 61.8 |
+| cat_Latn | 64.8 |
+| ceb_Latn | 61.1 |
+| ces_Latn | 60.0 |
+| ckb_Arab | 53.1 |
+| cym_Latn | 66.2 |
+| dan_Latn | 66.2 |
+| deu_Latn | 63.3 |
+| ell_Grek | 57.2 |
+| est_Latn | 56.5 |
+| eus_Latn | 54.1 |
+| fin_Latn | 54.5 |
+| fra_Latn | 64.0 |
+| fuv_Latn | 29.8 |
+| gaz_Latn | 42.3 |
+| gle_Latn | 56.0 |
+| glg_Latn | 62.7 |
+| guj_Gujr | 61.3 |
+| heb_Hebr | 60.2 |
+| hin_Deva | 61.0 |
+| hrv_Latn | 58.1 |
+| hun_Latn | 56.0 |
+| hye_Armn | 57.8 |
+| ibo_Latn | 47.4 |
+| ind_Latn | 63.0 |
+| isl_Latn | 50.5 |
+| ita_Latn | 58.3 |
+| jav_Latn | 56.9 |
+| jpn_Jpan | 48.4 |
+| kan_Knda | 55.3 |
+| kat_Geor | 50.8 |
+| kaz_Cyrl | 53.7 |
+| khk_Cyrl | 46.7 |
+| khm_Khmr | 51.8 |
+| kir_Cyrl | 46.7 |
+| kor_Hang | 50.8 |
+| lao_Laoo | 54.6 |
+| lit_Latn | 53.2 |
+| lug_Latn | 40.4 |
+| luo_Latn | 41.4 |
+| lvs_Latn | 54.3 |
+| mai_Deva | 61.4 |
+| mal_Mlym | 57.4 |
+| mar_Deva | 56.8 |
+| mkd_Cyrl | 61.7 |
+| mlt_Latn | 70.3 |
+| mni_Beng | 46.6 |
+| mya_Mymr | 49.1 |
+| nld_Latn | 55.7 |
+| nno_Latn | 62.1 |
+| nob_Latn | 60.8 |
+| npi_Deva | 60.6 |
+| nya_Latn | 45.8 |
+| ory_Orya | 56.9 |
+| pan_Guru | 60.1 |
+| pbt_Arab | 53.1 |
+| pes_Arab | 57.1 |
+| pol_Latn | 53.1 |
+| por_Latn | 67.7 |
+| ron_Latn | 64.6 |
+| rus_Cyrl | 56.7 |
+| slk_Latn | 59.7 |
+| slv_Latn | 56.1 |
+| sna_Latn | 46.2 |
+| snd_Arab | 58.9 |
+| som_Latn | 47.5 |
+| spa_Latn | 56.2 |
+| srp_Cyrl | 62.0 |
+| swe_Latn | 65.3 |
+| swh_Latn | 59.0 |
+| tam_Taml | 54.2 |
+| tel_Telu | 59.7 |
+| tgk_Cyrl | 53.7 |
+| tgl_Latn | 62.2 |
+| tha_Thai | 51.1 |
+| tur_Latn | 58.2 |
+| ukr_Cyrl | 59.2 |
+| urd_Arab | 56.2 |
+| uzn_Latn | 54.1 |
+| vie_Latn | 56.6 |
+| yor_Latn | 38.9 |
+| yue_Hant | 49.5 |
+| zho_Hans | 51.4 |
+| zho_Hant | 46.3 |
+| zsm_Latn | 63.0 |
+| zul_Latn | 55.3 |
+| **Mean** | **55.68**
 
-We find very close agreement with the 59.2 listed in the Seamless paper. Differences are likely
-attributed to slight difference in `generation()` arguments. For example, we use a `num_beams=3`
-to help limit VRAM needed.
+This is a little bit less than the 58.84 obtained with the
+[Seamless](./seamlessm4t_text2text.md) validation. This is mostly due to the difference
+in generation configuration. For the Seamless model, we utilize `num_beams=3`, but for
+NLLB we found that using `num_beams` greater than 1 caused a massive lowering of the
+throughput. As a result, we set `num_beams=1`.
 
 ### Code
-The code can be found in the [validate.py](../model_repository/seamlessm4t_text2text/validate.py)
+The code can be found in the [validate.py](../model_repository/nllb_200_distilled_600M/validate.py)
 file.
