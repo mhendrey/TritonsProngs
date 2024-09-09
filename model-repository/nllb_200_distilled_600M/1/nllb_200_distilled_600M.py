@@ -26,17 +26,17 @@ class TritonPythonModel:
         if args["model_instance_kind"] == "GPU" and torch.cuda.is_available():
             self.device = torch.device("cuda")
             torch_dtype = torch.float16
-            attn_implementation = "flash_attention_2"
+            # attn_implementation = "flash_attention_2"
         else:
             self.device = torch.device("cpu")
             torch_dtype = torch.float32  # CPUs can't handle float16
-            attn_implementation = None
+            # attn_implementation = None
         self.model = NllbMulti.from_pretrained(
             "facebook/nllb-200-distilled-600M",
             device_map="auto",
             torch_dtype=torch_dtype,
             local_files_only=True,
-            attn_implementation=attn_implementation,
+            # attn_implementation=attn_implementation,
         )
         self.tokenizer = NllbTokenizerFastMulti.from_pretrained(
             "facebook/nllb-200-distilled-600M",
