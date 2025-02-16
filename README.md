@@ -1,3 +1,5 @@
+This is deprecated and been moved over to [TritonsProngs](https://github.com/TritonsProngs) organization with different repositories for each service.
+
 # TritonsProngs
 Collection of Triton Inference Server deployment packages.
 
